@@ -13,15 +13,48 @@ import { DashboardData } from "@/types/dashboard";
 import { initialDashboardData, updateAllIndicatorsStatus } from "@/data/dashboardData";
 import { exportToExcel } from "@/utils/excelExport";
 import { Toaster } from "@/components/ui/toaster";
-import { Toaster as SonnerToaster } from "@/components/ui/sonner";
+import { Toaster as SonnerToaster, toast } from "@/components/ui/sonner";
+
+// Create a unique user ID for the current session
+const currentUserId = Math.random().toString(36).substring(2, 9);
+
+// Create a BroadcastChannel for sharing data between browser tabs/windows
+const broadcastChannel = new BroadcastChannel('dashboard-sync');
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData>(updateAllIndicatorsStatus(initialDashboardData));
 
+  // Listen for changes from other browser tabs/windows
+  useEffect(() => {
+    const handleMessageReceived = (event: MessageEvent) => {
+      if (event.data.userId !== currentUserId) {
+        setData(updateAllIndicatorsStatus(event.data.dashboardData));
+        toast.info('Dashboard atualizado', {
+          description: 'Os dados foram atualizados por outro usuário.'
+        });
+      }
+    };
+
+    broadcastChannel.addEventListener('message', handleMessageReceived);
+
+    // Clean up event listener when component unmounts
+    return () => {
+      broadcastChannel.removeEventListener('message', handleMessageReceived);
+    };
+  }, []);
+
   const handleUpdateData = (updatedData: Partial<DashboardData>) => {
     setData(prevData => {
       const newData = { ...prevData, ...updatedData };
-      return updateAllIndicatorsStatus(newData);
+      const processedData = updateAllIndicatorsStatus(newData);
+      
+      // Broadcast the updated data to other tabs/windows
+      broadcastChannel.postMessage({
+        userId: currentUserId,
+        dashboardData: processedData
+      });
+      
+      return processedData;
     });
   };
 
