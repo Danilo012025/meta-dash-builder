@@ -1,10 +1,9 @@
-
-import { useState, useEffect } from "react";
+import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, Trash2Icon, CalendarAlertIcon } from "lucide-react";
+import { PlusIcon, Trash2Icon, CalendarClockIcon } from "lucide-react";
 import { DashboardData, RemarketingLead } from "@/types/dashboard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
@@ -23,7 +22,6 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
   const [remarketingLeads, setRemarketingLeads] = useState<RemarketingLead[]>(data.remarketingLeads);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
-  // Calculate default next contact date (2 months from now)
   const defaultNextContactDate = format(addMonths(new Date(), 2), 'dd/MM/yyyy');
   
   const [newRemarketingLead, setNewRemarketingLead] = useState<RemarketingLead>({
@@ -34,7 +32,6 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
     nextContactDate: defaultNextContactDate
   });
 
-  // Check for approaching followup dates
   useEffect(() => {
     checkFollowUpDates();
   }, [remarketingLeads]);
@@ -44,7 +41,6 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
     
     remarketingLeads.forEach(lead => {
       try {
-        // Parse date from "dd/MM/yyyy" format
         const contactDate = parse(lead.nextContactDate, 'dd/MM/yyyy', new Date());
         
         if (!isValid(contactDate)) {
@@ -53,13 +49,11 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
 
         const daysUntilContact = differenceInDays(contactDate, today);
         
-        // Check if the follow-up date is approaching (within 5 days)
         if (daysUntilContact >= 0 && daysUntilContact <= 5) {
           toast(`Reabordagem próxima: ${lead.name}`, {
             description: `Faltam ${daysUntilContact === 0 ? 'hoje' : `${daysUntilContact} dias`} para reabordar este cliente.`,
           });
           
-          // Also use shadcn toast for redundancy and visual preference
           shadcnToast({
             title: `Reabordagem próxima: ${lead.name}`,
             description: `Faltam ${daysUntilContact === 0 ? 'hoje' : `${daysUntilContact} dias`} para reabordar este cliente.`,
@@ -84,7 +78,6 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
     setRemarketingLeads(updatedLeads);
     onUpdateData({ remarketingLeads: updatedLeads });
     
-    // Reset form with a fresh date 2 months from now
     setNewRemarketingLead({
       name: "",
       source: "Instagram",
@@ -116,7 +109,6 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-6">
-      {/* Observações Estratégicas */}
       <Card className="bg-card border-border">
         <CardContent className="p-6">
           <h2 className="text-2xl font-title text-white mb-4">
@@ -137,7 +129,6 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
         </CardContent>
       </Card>
       
-      {/* Remarketing e Reabordagem */}
       <div>
         <Card className="bg-card border-border">
           <CardContent className="p-6">
@@ -176,7 +167,7 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
                         <TableCell className="text-white">{lead.lossReason}</TableCell>
                         <TableCell className="text-white flex items-center gap-2">
                           {isApproachingDate(lead.nextContactDate) && (
-                            <CalendarAlertIcon className="h-4 w-4 text-yellow-500" />
+                            <CalendarClockIcon className="h-4 w-4 text-yellow-500" />
                           )}
                           {lead.nextContactDate}
                         </TableCell>
@@ -205,7 +196,6 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
           </CardContent>
         </Card>
 
-        {/* Diálogo para adicionar lead de remarketing */}
         <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
           <DialogContent className="bg-card text-white border-border">
             <DialogHeader>
