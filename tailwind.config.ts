@@ -18,7 +18,16 @@ export default {
 			}
 		},
 		extend: {
+      fontFamily: {
+        title: ["Qb One Heavy", "sans-serif"],
+        body: ["Montserrat", "sans-serif"],
+      },
 			colors: {
+        brand: {
+          neon: "#00FF00",
+          black: "#070707",
+          white: "#FFFFFF",
+        },
 				border: 'hsl(var(--border))',
 				input: 'hsl(var(--input))',
 				ring: 'hsl(var(--ring))',
