@@ -1,4 +1,3 @@
-
 export interface Indicator {
   name: string;
   value: number;
@@ -11,6 +10,7 @@ export interface RevenueGoal {
   weeklyGoal: number;
   monthlyGoal: number;
   progress: number;
+  currentValue?: number;
 }
 
 export interface Lead {

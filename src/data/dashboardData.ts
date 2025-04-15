@@ -1,4 +1,3 @@
-
 import { DashboardData } from "../types/dashboard";
 
 export const initialDashboardData: DashboardData = {
@@ -15,9 +14,9 @@ export const initialDashboardData: DashboardData = {
     { name: "Taxa de Fechamento", value: 55, goal: 50, status: null }
   ],
   revenueGoals: [
-    { plan: "Start", weeklyGoal: 2500, monthlyGoal: 10000, progress: 65 },
-    { plan: "Pro", weeklyGoal: 5000, monthlyGoal: 20000, progress: 48 },
-    { plan: "Elite", weeklyGoal: 7500, monthlyGoal: 30000, progress: 72 }
+    { plan: "Start", weeklyGoal: 2500, monthlyGoal: 10000, progress: 65, currentValue: 6500 },
+    { plan: "Pro", weeklyGoal: 5000, monthlyGoal: 20000, progress: 48, currentValue: 9600 },
+    { plan: "Elite", weeklyGoal: 7500, monthlyGoal: 30000, progress: 72, currentValue: 21600 }
   ],
   weeklyCallData: [
     { week: "Semana 1", calls: 45 },
@@ -105,7 +104,6 @@ export const initialDashboardData: DashboardData = {
   ]
 };
 
-// Função para calcular o status dos indicadores automaticamente
 export function calculateIndicatorStatus(value: number, goal: number): "success" | "warning" | "error" {
   const percentage = (value / goal) * 100;
   
@@ -118,7 +116,6 @@ export function calculateIndicatorStatus(value: number, goal: number): "success"
   }
 }
 
-// Função para atualizar o status de todos os indicadores
 export function updateAllIndicatorsStatus(data: DashboardData): DashboardData {
   const updatedData = {...data};
   

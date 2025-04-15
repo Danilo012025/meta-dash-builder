@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "lucide-react";
@@ -42,7 +41,7 @@ export function Dashboard() {
       <HeaderSection data={data} onUpdateData={handleUpdateData} />
       <IndicatorsSection data={data} onUpdateData={handleUpdateData} />
       <RevenueGoalsSection data={data} onUpdateData={handleUpdateData} />
-      <ChartsSection data={data} />
+      <ChartsSection data={data} onUpdateData={handleUpdateData} />
       <LeadsTable data={data} onUpdateData={handleUpdateData} />
       <MeetingSummarySection data={data} onUpdateData={handleUpdateData} />
       <NotesAndRemarketing data={data} onUpdateData={handleUpdateData} />

@@ -1,5 +1,5 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
@@ -12,6 +12,13 @@ interface RevenueGoalsSectionProps {
 
 export function RevenueGoalsSection({ data, onUpdateData }: RevenueGoalsSectionProps) {
   const [goals, setGoals] = useState<RevenueGoal[]>(data.revenueGoals);
+  
+  // Função para calcular o progresso com base no valor atual e na meta
+  const calculateProgress = (actual: number, goal: number): number => {
+    if (goal <= 0) return 0;
+    const progress = Math.round((actual / goal) * 100);
+    return progress > 100 ? 100 : progress;
+  };
 
   const handleWeeklyGoalChange = (index: number, value: number) => {
     const updatedGoals = [...goals];
@@ -27,9 +34,18 @@ export function RevenueGoalsSection({ data, onUpdateData }: RevenueGoalsSectionP
     onUpdateData({ revenueGoals: updatedGoals });
   };
 
-  const handleProgressChange = (index: number, value: number) => {
+  // Novo método para atualizar o valor atual
+  const handleCurrentValueChange = (index: number, value: number) => {
     const updatedGoals = [...goals];
-    updatedGoals[index] = { ...updatedGoals[index], progress: value };
+    const monthlyGoal = updatedGoals[index].monthlyGoal;
+    const progress = calculateProgress(value, monthlyGoal);
+    
+    updatedGoals[index] = { 
+      ...updatedGoals[index], 
+      currentValue: value,
+      progress: progress
+    };
+    
     setGoals(updatedGoals);
     onUpdateData({ revenueGoals: updatedGoals });
   };
@@ -75,15 +91,14 @@ export function RevenueGoalsSection({ data, onUpdateData }: RevenueGoalsSectionP
                 
                 <div>
                   <label className="block text-sm text-muted-foreground mb-1">
-                    Progresso (%)
+                    Valor Atual (R$)
                   </label>
                   <Input 
                     type="number"
-                    value={goal.progress}
-                    onChange={(e) => handleProgressChange(index, Number(e.target.value))}
+                    value={goal.currentValue || 0}
+                    onChange={(e) => handleCurrentValueChange(index, Number(e.target.value))}
                     className="bg-muted text-white"
                     min="0"
-                    max="100"
                   />
                 </div>
               </div>
@@ -95,7 +110,7 @@ export function RevenueGoalsSection({ data, onUpdateData }: RevenueGoalsSectionP
                   }}
                 />
                 <div className="text-right mt-1 text-sm text-muted-foreground">
-                  {goal.progress}%
+                  {goal.progress}% ({goal.currentValue || 0} de {goal.monthlyGoal})
                 </div>
               </div>
             </div>
