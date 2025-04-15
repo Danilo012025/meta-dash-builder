@@ -1,13 +1,16 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { PlusIcon, Trash2Icon } from "lucide-react";
+import { PlusIcon, Trash2Icon, CalendarAlertIcon } from "lucide-react";
 import { DashboardData, RemarketingLead } from "@/types/dashboard";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { format, addMonths, parse, differenceInDays, isValid } from "date-fns";
+import { toast } from "sonner";
+import { useToast } from "@/hooks/use-toast";
 
 interface NotesAndRemarketingProps {
   data: DashboardData;
@@ -15,16 +18,59 @@ interface NotesAndRemarketingProps {
 }
 
 export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingProps) {
+  const { toast: shadcnToast } = useToast();
   const [strategicNotes, setStrategicNotes] = useState(data.strategicNotes);
   const [remarketingLeads, setRemarketingLeads] = useState<RemarketingLead[]>(data.remarketingLeads);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  
+  // Calculate default next contact date (2 months from now)
+  const defaultNextContactDate = format(addMonths(new Date(), 2), 'dd/MM/yyyy');
+  
   const [newRemarketingLead, setNewRemarketingLead] = useState<RemarketingLead>({
     name: "",
     source: "Instagram",
     lossReason: "",
     nextAction: "",
-    nextContactDate: new Date().toLocaleDateString('pt-BR')
+    nextContactDate: defaultNextContactDate
   });
+
+  // Check for approaching followup dates
+  useEffect(() => {
+    checkFollowUpDates();
+  }, [remarketingLeads]);
+
+  const checkFollowUpDates = () => {
+    const today = new Date();
+    
+    remarketingLeads.forEach(lead => {
+      try {
+        // Parse date from "dd/MM/yyyy" format
+        const contactDate = parse(lead.nextContactDate, 'dd/MM/yyyy', new Date());
+        
+        if (!isValid(contactDate)) {
+          return;
+        }
+
+        const daysUntilContact = differenceInDays(contactDate, today);
+        
+        // Check if the follow-up date is approaching (within 5 days)
+        if (daysUntilContact >= 0 && daysUntilContact <= 5) {
+          toast(`Reabordagem próxima: ${lead.name}`, {
+            description: `Faltam ${daysUntilContact === 0 ? 'hoje' : `${daysUntilContact} dias`} para reabordar este cliente.`,
+          });
+          
+          // Also use shadcn toast for redundancy and visual preference
+          shadcnToast({
+            title: `Reabordagem próxima: ${lead.name}`,
+            description: `Faltam ${daysUntilContact === 0 ? 'hoje' : `${daysUntilContact} dias`} para reabordar este cliente.`,
+            duration: 5000
+          });
+        }
+      } catch (error) {
+        console.error(`Erro ao processar data para ${lead.name}:`, error);
+      }
+    });
+  };
 
   const handleNotesChange = (value: string) => {
     setStrategicNotes(value);
@@ -38,12 +84,13 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
     setRemarketingLeads(updatedLeads);
     onUpdateData({ remarketingLeads: updatedLeads });
     
+    // Reset form with a fresh date 2 months from now
     setNewRemarketingLead({
       name: "",
       source: "Instagram",
       lossReason: "",
       nextAction: "",
-      nextContactDate: new Date().toLocaleDateString('pt-BR')
+      nextContactDate: format(addMonths(new Date(), 2), 'dd/MM/yyyy')
     });
     setIsAddDialogOpen(false);
   };
@@ -53,6 +100,18 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
     updatedLeads.splice(index, 1);
     setRemarketingLeads(updatedLeads);
     onUpdateData({ remarketingLeads: updatedLeads });
+  };
+
+  const isApproachingDate = (nextContactDateStr: string): boolean => {
+    try {
+      const nextContactDate = parse(nextContactDateStr, 'dd/MM/yyyy', new Date());
+      if (!isValid(nextContactDate)) return false;
+      
+      const daysUntilContact = differenceInDays(nextContactDate, new Date());
+      return daysUntilContact >= 0 && daysUntilContact <= 5;
+    } catch (error) {
+      return false;
+    }
   };
 
   return (
@@ -109,11 +168,18 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
                 <TableBody>
                   {remarketingLeads.length > 0 ? (
                     remarketingLeads.map((lead, index) => (
-                      <TableRow key={index} className="border-t border-border hover:bg-secondary/50">
+                      <TableRow key={index} className={`border-t border-border hover:bg-secondary/50 ${
+                        isApproachingDate(lead.nextContactDate) ? 'bg-yellow-900/30' : ''
+                      }`}>
                         <TableCell className="font-medium text-white">{lead.name}</TableCell>
                         <TableCell className="text-white">{lead.source}</TableCell>
                         <TableCell className="text-white">{lead.lossReason}</TableCell>
-                        <TableCell className="text-white">{lead.nextContactDate}</TableCell>
+                        <TableCell className="text-white flex items-center gap-2">
+                          {isApproachingDate(lead.nextContactDate) && (
+                            <CalendarAlertIcon className="h-4 w-4 text-yellow-500" />
+                          )}
+                          {lead.nextContactDate}
+                        </TableCell>
                         <TableCell className="text-right">
                           <Button
                             variant="ghost"
@@ -185,7 +251,7 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
               
               <div className="space-y-2">
                 <label htmlFor="nextContactDate" className="text-sm font-medium text-muted-foreground">
-                  Data para Reabordar
+                  Data para Reabordar (2 meses à frente)
                 </label>
                 <Input
                   id="nextContactDate"

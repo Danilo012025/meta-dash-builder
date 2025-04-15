@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "lucide-react";
@@ -11,6 +12,8 @@ import { NotesAndRemarketing } from "./NotesAndRemarketing";
 import { DashboardData } from "@/types/dashboard";
 import { initialDashboardData, updateAllIndicatorsStatus } from "@/data/dashboardData";
 import { exportToExcel } from "@/utils/excelExport";
+import { Toaster } from "@/components/ui/toaster";
+import { Toaster as SonnerToaster } from "@/components/ui/sonner";
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData>(updateAllIndicatorsStatus(initialDashboardData));
@@ -28,6 +31,9 @@ export function Dashboard() {
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
+      <SonnerToaster position="top-right" />
+      <Toaster />
+      
       <div className="mb-6 flex justify-end">
         <Button 
           onClick={handleExportToExcel} 
