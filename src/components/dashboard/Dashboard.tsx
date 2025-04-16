@@ -21,51 +21,73 @@ export function Dashboard() {
   const [data, setData] = useState<DashboardData>(updateAllIndicatorsStatus(initialDashboardData));
   const { currentUser } = useAuth();
   
-  // Reference to the dashboard data in Firebase
-  const dashboardRef = ref(database, 'dashboard');
-  
   // Listen for changes in Firebase
   useEffect(() => {
-    // First check if there's data in Firebase
-    onValue(dashboardRef, (snapshot) => {
-      if (snapshot.exists()) {
-        // If data exists, use it
-        const firebaseData = snapshot.val();
-        setData(updateAllIndicatorsStatus(firebaseData));
-      } else {
-        // Otherwise, initialize with default data
-        set(dashboardRef, initialDashboardData);
-      }
-    }, {
-      onlyOnce: false // Set to false to continue listening for updates
-    });
-    
-    // Clean up the listener when component unmounts
-    return () => {
-      // No need to explicitly detach the listener, Firebase handles this
-    };
+    try {
+      // Reference to the dashboard data in Firebase
+      const dashboardRef = ref(database, 'dashboard');
+      
+      // First check if there's data in Firebase
+      const unsubscribe = onValue(dashboardRef, (snapshot) => {
+        try {
+          if (snapshot.exists()) {
+            // If data exists, use it
+            const firebaseData = snapshot.val();
+            setData(updateAllIndicatorsStatus(firebaseData));
+          } else {
+            // Otherwise, initialize with default data
+            set(dashboardRef, initialDashboardData).catch(err => {
+              console.error("Error setting initial data:", err);
+            });
+          }
+        } catch (error) {
+          console.error("Error processing Firebase data:", error);
+          // Fallback to local data if Firebase fails
+          setData(updateAllIndicatorsStatus(initialDashboardData));
+        }
+      }, {
+        onlyOnce: false // Set to false to continue listening for updates
+      });
+      
+      // Clean up the listener when component unmounts
+      return () => {
+        unsubscribe();
+      };
+    } catch (error) {
+      console.error("Firebase dashboard reference error:", error);
+      // Use local data if Firebase is not available
+      setData(updateAllIndicatorsStatus(initialDashboardData));
+    }
   }, []);
   
   // Handle change notifications
   useEffect(() => {
-    const lastUpdateRef = ref(database, 'lastUpdate');
-    
-    const unsubscribe = onValue(lastUpdateRef, (snapshot) => {
-      if (snapshot.exists()) {
-        const update = snapshot.val();
-        
-        // Only show notification if the update wasn't made by current user
-        if (update.userId !== currentUser?.uid) {
-          toast.info('Dashboard atualizado', {
-            description: `Dados atualizados por ${update.userEmail || 'outro usuário'}.`
-          });
+    try {
+      const lastUpdateRef = ref(database, 'lastUpdate');
+      
+      const unsubscribe = onValue(lastUpdateRef, (snapshot) => {
+        try {
+          if (snapshot.exists()) {
+            const update = snapshot.val();
+            
+            // Only show notification if the update wasn't made by current user
+            if (update.userId !== currentUser?.uid) {
+              toast.info('Dashboard atualizado', {
+                description: `Dados atualizados por ${update.userEmail || 'outro usuário'}.`
+              });
+            }
+          }
+        } catch (error) {
+          console.error("Error processing update notification:", error);
         }
-      }
-    });
-    
-    return () => {
-      // Firebase handles unsubscribe
-    };
+      });
+      
+      return () => {
+        unsubscribe();
+      };
+    } catch (error) {
+      console.error("Firebase update reference error:", error);
+    }
   }, [currentUser]);
 
   const handleUpdateData = (updatedData: Partial<DashboardData>) => {
@@ -75,16 +97,27 @@ export function Dashboard() {
     // Update data locally
     setData(processedData);
     
-    // Update data in Firebase
-    set(dashboardRef, processedData);
-    
-    // Record who made the update
-    if (currentUser) {
-      set(ref(database, 'lastUpdate'), {
-        userId: currentUser.uid,
-        userEmail: currentUser.email,
-        timestamp: new Date().toISOString()
+    try {
+      // Reference to the dashboard data in Firebase
+      const dashboardRef = ref(database, 'dashboard');
+      
+      // Update data in Firebase
+      set(dashboardRef, processedData).catch(err => {
+        console.error("Error updating data in Firebase:", err);
       });
+      
+      // Record who made the update
+      if (currentUser) {
+        set(ref(database, 'lastUpdate'), {
+          userId: currentUser.uid,
+          userEmail: currentUser.email,
+          timestamp: new Date().toISOString()
+        }).catch(err => {
+          console.error("Error setting update info:", err);
+        });
+      }
+    } catch (error) {
+      console.error("Firebase update error:", error);
     }
   };
 
