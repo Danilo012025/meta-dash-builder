@@ -8,7 +8,7 @@ const firebaseConfig = {
   apiKey: "AIzaSyCaW8uXHoS1BlcbqgAYz1lexZCzD2Pl7CU",
   authDomain: "rcm-the-start.firebaseapp.com",
   projectId: "rcm-the-start",
-  storageBucket: "rcm-the-start.firebasestorage.app",
+  storageBucket: "rcm-the-start.appspot.com", // corrigido o storage bucket
   messagingSenderId: "326145177001",
   appId: "1:326145177001:web:03dff4892e377a9e5900b8",
   measurementId: "G-WZG9TNQ5V6",

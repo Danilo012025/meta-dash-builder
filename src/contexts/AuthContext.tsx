@@ -38,7 +38,23 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.success("Conta criada com sucesso!");
       })
       .catch(error => {
-        toast.error("Erro ao criar conta: " + error.message);
+        console.error("Signup error:", error);
+        let errorMessage = "Erro ao criar conta";
+        
+        // Tratando erros específicos
+        if (error.code === "auth/email-already-in-use") {
+          errorMessage = "Este email já está em uso";
+        } else if (error.code === "auth/weak-password") {
+          errorMessage = "A senha é muito fraca";
+        } else if (error.code === "auth/invalid-email") {
+          errorMessage = "Email inválido";
+        } else if (error.code === "auth/operation-not-allowed") {
+          errorMessage = "Cadastro de usuários não está habilitado";
+        } else if (error.code === "auth/configuration-not-found") {
+          errorMessage = "Erro de configuração no Firebase";
+        }
+        
+        toast.error(errorMessage);
         throw error;
       });
   }
@@ -49,7 +65,25 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.success("Login realizado com sucesso!");
       })
       .catch(error => {
-        toast.error("Falha no login: " + error.message);
+        console.error("Login error:", error);
+        let errorMessage = "Falha no login";
+        
+        // Tratando erros específicos
+        if (error.code === "auth/user-not-found") {
+          errorMessage = "Usuário não encontrado";
+        } else if (error.code === "auth/wrong-password") {
+          errorMessage = "Senha incorreta";
+        } else if (error.code === "auth/invalid-email") {
+          errorMessage = "Email inválido";
+        } else if (error.code === "auth/user-disabled") {
+          errorMessage = "Usuário desativado";
+        } else if (error.code === "auth/too-many-requests") {
+          errorMessage = "Muitas tentativas. Tente novamente mais tarde";
+        } else if (error.code === "auth/configuration-not-found") {
+          errorMessage = "Erro de configuração no Firebase";
+        }
+        
+        toast.error(errorMessage);
         throw error;
       });
   }
@@ -60,6 +94,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         toast.info("Logout realizado");
       })
       .catch(error => {
+        console.error("Logout error:", error);
         toast.error("Erro ao realizar logout: " + error.message);
         throw error;
       });
