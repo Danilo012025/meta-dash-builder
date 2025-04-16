@@ -1,3 +1,4 @@
+
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "lucide-react";
@@ -14,116 +15,143 @@ import { exportToExcel } from "@/utils/excelExport";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster, toast } from "@/components/ui/sonner";
 import { database } from "@/lib/firebase";
-import { ref, onValue, set } from "firebase/database";
+import { ref, onValue, set, get } from "firebase/database";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData>(updateAllIndicatorsStatus(initialDashboardData));
+  const [isLoading, setIsLoading] = useState(true);
   const { currentUser } = useAuth();
   
-  // Listen for changes in Firebase
+  // Inicializar e sincronizar dados com o Firebase
   useEffect(() => {
     try {
-      // Reference to the dashboard data in Firebase
+      // Referência aos dados do dashboard no Firebase
       const dashboardRef = ref(database, 'dashboard');
       
-      // First check if there's data in Firebase
+      // Verificar se já existem dados no Firebase
+      get(dashboardRef).then((snapshot) => {
+        if (snapshot.exists()) {
+          console.log("Dados encontrados no Firebase, carregando...");
+          const firebaseData = snapshot.val();
+          setData(updateAllIndicatorsStatus(firebaseData));
+        } else {
+          console.log("Nenhum dado encontrado, inicializando com dados padrão");
+          // Se não houver dados, inicializar com os dados padrão
+          set(dashboardRef, initialDashboardData).catch(err => {
+            console.error("Erro ao definir dados iniciais:", err);
+            toast.error("Erro ao inicializar dados");
+          });
+        }
+        setIsLoading(false);
+      }).catch(error => {
+        console.error("Erro ao buscar dados iniciais:", error);
+        setIsLoading(false);
+        toast.error("Erro ao carregar dados");
+      });
+      
+      // Configurar listener para atualizações em tempo real
       const unsubscribe = onValue(dashboardRef, (snapshot) => {
         try {
           if (snapshot.exists()) {
-            // If data exists, use it
             const firebaseData = snapshot.val();
             setData(updateAllIndicatorsStatus(firebaseData));
-          } else {
-            // Otherwise, initialize with default data
-            set(dashboardRef, initialDashboardData).catch(err => {
-              console.error("Error setting initial data:", err);
-            });
           }
         } catch (error) {
-          console.error("Error processing Firebase data:", error);
-          // Fallback to local data if Firebase fails
-          setData(updateAllIndicatorsStatus(initialDashboardData));
+          console.error("Erro ao processar dados do Firebase:", error);
         }
-      }, {
-        onlyOnce: false // Set to false to continue listening for updates
       });
       
-      // Clean up the listener when component unmounts
-      return () => {
-        unsubscribe();
-      };
+      // Limpar listener quando o componente for desmontado
+      return () => unsubscribe();
     } catch (error) {
-      console.error("Firebase dashboard reference error:", error);
-      // Use local data if Firebase is not available
-      setData(updateAllIndicatorsStatus(initialDashboardData));
+      console.error("Erro na referência do dashboard Firebase:", error);
+      setIsLoading(false);
+      toast.error("Erro de conexão com o banco de dados");
     }
   }, []);
   
-  // Handle change notifications
+  // Monitorar notificações de alterações
   useEffect(() => {
     try {
       const lastUpdateRef = ref(database, 'lastUpdate');
       
       const unsubscribe = onValue(lastUpdateRef, (snapshot) => {
         try {
-          if (snapshot.exists()) {
+          if (snapshot.exists() && !isLoading) {
             const update = snapshot.val();
             
-            // Only show notification if the update wasn't made by current user
-            if (update.userId !== currentUser?.uid) {
+            // Mostrar notificação apenas se a atualização não foi feita pelo usuário atual
+            if (update.userId !== currentUser?.uid && update.timestamp) {
               toast.info('Dashboard atualizado', {
-                description: `Dados atualizados por ${update.userEmail || 'outro usuário'}.`
+                description: `Dados atualizados por ${update.userEmail || 'outro usuário'} em ${new Date(update.timestamp).toLocaleString('pt-BR')}`,
               });
             }
           }
         } catch (error) {
-          console.error("Error processing update notification:", error);
+          console.error("Erro ao processar notificação de atualização:", error);
         }
       });
       
-      return () => {
-        unsubscribe();
-      };
+      return () => unsubscribe();
     } catch (error) {
-      console.error("Firebase update reference error:", error);
+      console.error("Erro na referência de atualização Firebase:", error);
     }
-  }, [currentUser]);
+  }, [currentUser, isLoading]);
 
   const handleUpdateData = (updatedData: Partial<DashboardData>) => {
+    if (isLoading) return;
+    
     const newData = { ...data, ...updatedData };
     const processedData = updateAllIndicatorsStatus(newData);
     
-    // Update data locally
+    // Atualizar dados localmente
     setData(processedData);
     
     try {
-      // Reference to the dashboard data in Firebase
+      // Referência aos dados do dashboard no Firebase
       const dashboardRef = ref(database, 'dashboard');
       
-      // Update data in Firebase
-      set(dashboardRef, processedData).catch(err => {
-        console.error("Error updating data in Firebase:", err);
+      // Atualizar dados no Firebase
+      set(dashboardRef, processedData).then(() => {
+        console.log("Dados salvos com sucesso no Firebase");
+        
+        // Registrar quem fez a atualização
+        if (currentUser) {
+          set(ref(database, 'lastUpdate'), {
+            userId: currentUser.uid,
+            userEmail: currentUser.email,
+            timestamp: new Date().toISOString()
+          }).catch(err => {
+            console.error("Erro ao definir informações de atualização:", err);
+          });
+        }
+      }).catch(err => {
+        console.error("Erro ao atualizar dados no Firebase:", err);
+        toast.error("Erro ao salvar alterações");
       });
-      
-      // Record who made the update
-      if (currentUser) {
-        set(ref(database, 'lastUpdate'), {
-          userId: currentUser.uid,
-          userEmail: currentUser.email,
-          timestamp: new Date().toISOString()
-        }).catch(err => {
-          console.error("Error setting update info:", err);
-        });
-      }
     } catch (error) {
-      console.error("Firebase update error:", error);
+      console.error("Erro de atualização Firebase:", error);
+      toast.error("Erro de conexão ao salvar alterações");
     }
   };
 
   const handleExportToExcel = () => {
     exportToExcel(data);
   };
+
+  if (isLoading) {
+    return (
+      <div className="container mx-auto px-4 py-8 max-w-7xl">
+        <div className="flex items-center justify-center h-screen">
+          <div className="text-center">
+            <div className="w-16 h-16 border-t-4 border-brand-neon border-solid rounded-full animate-spin mx-auto mb-4"></div>
+            <p className="text-lg text-white font-medium">Carregando dados...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mx-auto px-4 py-8 max-w-7xl">
