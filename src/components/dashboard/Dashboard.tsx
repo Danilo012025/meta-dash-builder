@@ -1,4 +1,3 @@
-
 import { useState, useEffect } from "react";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "lucide-react";
@@ -14,48 +13,79 @@ import { initialDashboardData, updateAllIndicatorsStatus } from "@/data/dashboar
 import { exportToExcel } from "@/utils/excelExport";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster, toast } from "@/components/ui/sonner";
-
-// Create a unique user ID for the current session
-const currentUserId = Math.random().toString(36).substring(2, 9);
-
-// Create a BroadcastChannel for sharing data between browser tabs/windows
-const broadcastChannel = new BroadcastChannel('dashboard-sync');
+import { database } from "@/lib/firebase";
+import { ref, onValue, set } from "firebase/database";
+import { useAuth } from "@/contexts/AuthContext";
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData>(updateAllIndicatorsStatus(initialDashboardData));
-
-  // Listen for changes from other browser tabs/windows
+  const { currentUser } = useAuth();
+  
+  // Reference to the dashboard data in Firebase
+  const dashboardRef = ref(database, 'dashboard');
+  
+  // Listen for changes in Firebase
   useEffect(() => {
-    const handleMessageReceived = (event: MessageEvent) => {
-      if (event.data.userId !== currentUserId) {
-        setData(updateAllIndicatorsStatus(event.data.dashboardData));
-        toast.info('Dashboard atualizado', {
-          description: 'Os dados foram atualizados por outro usuário.'
-        });
+    // First check if there's data in Firebase
+    onValue(dashboardRef, (snapshot) => {
+      if (snapshot.exists()) {
+        // If data exists, use it
+        const firebaseData = snapshot.val();
+        setData(updateAllIndicatorsStatus(firebaseData));
+      } else {
+        // Otherwise, initialize with default data
+        set(dashboardRef, initialDashboardData);
       }
-    };
-
-    broadcastChannel.addEventListener('message', handleMessageReceived);
-
-    // Clean up event listener when component unmounts
+    }, {
+      onlyOnce: false // Set to false to continue listening for updates
+    });
+    
+    // Clean up the listener when component unmounts
     return () => {
-      broadcastChannel.removeEventListener('message', handleMessageReceived);
+      // No need to explicitly detach the listener, Firebase handles this
     };
   }, []);
+  
+  // Handle change notifications
+  useEffect(() => {
+    const lastUpdateRef = ref(database, 'lastUpdate');
+    
+    const unsubscribe = onValue(lastUpdateRef, (snapshot) => {
+      if (snapshot.exists()) {
+        const update = snapshot.val();
+        
+        // Only show notification if the update wasn't made by current user
+        if (update.userId !== currentUser?.uid) {
+          toast.info('Dashboard atualizado', {
+            description: `Dados atualizados por ${update.userEmail || 'outro usuário'}.`
+          });
+        }
+      }
+    });
+    
+    return () => {
+      // Firebase handles unsubscribe
+    };
+  }, [currentUser]);
 
   const handleUpdateData = (updatedData: Partial<DashboardData>) => {
-    setData(prevData => {
-      const newData = { ...prevData, ...updatedData };
-      const processedData = updateAllIndicatorsStatus(newData);
-      
-      // Broadcast the updated data to other tabs/windows
-      broadcastChannel.postMessage({
-        userId: currentUserId,
-        dashboardData: processedData
+    const newData = { ...data, ...updatedData };
+    const processedData = updateAllIndicatorsStatus(newData);
+    
+    // Update data locally
+    setData(processedData);
+    
+    // Update data in Firebase
+    set(dashboardRef, processedData);
+    
+    // Record who made the update
+    if (currentUser) {
+      set(ref(database, 'lastUpdate'), {
+        userId: currentUser.uid,
+        userEmail: currentUser.email,
+        timestamp: new Date().toISOString()
       });
-      
-      return processedData;
-    });
+    }
   };
 
   const handleExportToExcel = () => {
