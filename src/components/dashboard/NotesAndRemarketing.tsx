@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
@@ -18,8 +19,11 @@ interface NotesAndRemarketingProps {
 
 export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingProps) {
   const { toast: shadcnToast } = useToast();
-  const [strategicNotes, setStrategicNotes] = useState(data.strategicNotes);
-  const [remarketingLeads, setRemarketingLeads] = useState<RemarketingLead[]>(data.remarketingLeads);
+  // Add null checks to ensure we have default values if data is undefined
+  const [strategicNotes, setStrategicNotes] = useState(data?.strategicNotes || "");
+  const [remarketingLeads, setRemarketingLeads] = useState<RemarketingLead[]>(
+    Array.isArray(data?.remarketingLeads) ? data.remarketingLeads : []
+  );
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   
   const defaultNextContactDate = format(addMonths(new Date(), 2), 'dd/MM/yyyy');
@@ -33,14 +37,32 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
   });
 
   useEffect(() => {
-    checkFollowUpDates();
+    // Update state when data prop changes
+    if (data) {
+      if (data.strategicNotes !== undefined) {
+        setStrategicNotes(data.strategicNotes);
+      }
+      if (Array.isArray(data.remarketingLeads)) {
+        setRemarketingLeads(data.remarketingLeads);
+      }
+    }
+  }, [data]);
+
+  useEffect(() => {
+    if (remarketingLeads && remarketingLeads.length > 0) {
+      checkFollowUpDates();
+    }
   }, [remarketingLeads]);
 
   const checkFollowUpDates = () => {
+    if (!remarketingLeads || remarketingLeads.length === 0) return;
+    
     const today = new Date();
     
     remarketingLeads.forEach(lead => {
       try {
+        if (!lead.nextContactDate) return;
+        
         const contactDate = parse(lead.nextContactDate, 'dd/MM/yyyy', new Date());
         
         if (!isValid(contactDate)) {
@@ -97,6 +119,8 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
 
   const isApproachingDate = (nextContactDateStr: string): boolean => {
     try {
+      if (!nextContactDateStr) return false;
+      
       const nextContactDate = parse(nextContactDateStr, 'dd/MM/yyyy', new Date());
       if (!isValid(nextContactDate)) return false;
       
@@ -157,7 +181,7 @@ export function NotesAndRemarketing({ data, onUpdateData }: NotesAndRemarketingP
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {remarketingLeads.length > 0 ? (
+                  {remarketingLeads && remarketingLeads.length > 0 ? (
                     remarketingLeads.map((lead, index) => (
                       <TableRow key={index} className={`border-t border-border hover:bg-secondary/50 ${
                         isApproachingDate(lead.nextContactDate) ? 'bg-yellow-900/30' : ''
