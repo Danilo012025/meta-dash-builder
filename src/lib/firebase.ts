@@ -1,7 +1,7 @@
 
 import { initializeApp } from "firebase/app";
-import { getAuth, connectAuthEmulator } from "firebase/auth";
-import { getDatabase, connectDatabaseEmulator, enableLogging } from "firebase/database";
+import { getAuth } from "firebase/auth";
+import { getDatabase, connectDatabaseEmulator, ref, onValue } from "firebase/database";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -14,14 +14,6 @@ const firebaseConfig = {
   measurementId: "G-WZG9TNQ5V6",
   databaseURL: "https://rcm-the-start-default-rtdb.firebaseio.com"
 };
-
-// Habilitar logs em ambiente de desenvolvimento
-const isDev = process.env.NODE_ENV === 'development';
-if (isDev) {
-  enableLogging((message) => {
-    console.log("[FIREBASE]", message);
-  }, { error: true });
-}
 
 // Inicializar Firebase com tratamento robusto de erros
 let app;
@@ -37,10 +29,6 @@ try {
 let auth;
 try {
   auth = getAuth(app);
-  
-  // Configurar para não persistir estado entre sessões para evitar problemas com múltiplos usuários
-  auth.setPersistence('session');
-  
   console.log("Firebase Auth inicializado com sucesso");
 } catch (error) {
   console.error("Firebase Authentication initialization error:", error);
@@ -61,28 +49,31 @@ try {
 // Inicializar Realtime Database com otimizações para múltiplos usuários
 let database;
 try {
-  const dbConfig = {
-    // Configurações para otimização de múltiplos usuários (até 20)
-    authDomain: firebaseConfig.authDomain,
-    databaseURL: firebaseConfig.databaseURL,
-    // Aumentar limite de conexões simultâneas
-    experimentalForceLongPolling: false, // Usar WebSockets por padrão
-  };
-  
   database = getDatabase(app);
   
-  // Configurações adicionais para ambientes com múltiplos usuários
-  // Estas configurações ajudam a lidar com desconexões e reconexões
-  const connectedRef = database.ref('.info/connected');
-  connectedRef.on('value', (snap) => {
-    if (snap.val() === true) {
-      console.log("Conectado ao Firebase Database");
-    } else {
-      console.log("Desconectado do Firebase Database");
-    }
-  });
+  // Log de informações apenas em ambiente de desenvolvimento e apenas no console
+  if (process.env.NODE_ENV === 'development') {
+    console.log("Ambiente de desenvolvimento: logs detalhados do Firebase ativados");
+  }
   
   console.log("Firebase Database inicializado com sucesso (otimizado para múltiplos usuários)");
+  
+  // Configurar listener para estado de conexão
+  try {
+    const connectedRef = ref(database, '.info/connected');
+    onValue(connectedRef, (snap) => {
+      if (snap.val() === true) {
+        console.log("Conectado ao Firebase Database");
+      } else {
+        console.log("Desconectado do Firebase Database");
+      }
+    }, (error) => {
+      console.error("Erro ao verificar status de conexão:", error);
+    });
+  } catch (connErr) {
+    console.warn("Não foi possível configurar listener de conexão:", connErr);
+  }
+  
 } catch (error) {
   console.error("Firebase Database initialization error:", error);
   // Criar um objeto de banco de dados fictício para evitar falhas
@@ -108,17 +99,33 @@ const setupMultiUserSupport = () => {
   try {
     // Configurar para lidar com desconexões inesperadas
     window.addEventListener('unload', () => {
-      if (database && database.goOffline) {
+      if (database && typeof database.goOffline === 'function') {
         database.goOffline();
       }
     });
     
     // Reconectar automaticamente quando a aplicação voltar a ter foco
     window.addEventListener('focus', () => {
-      if (database && database.goOnline) {
+      if (database && typeof database.goOnline === 'function') {
         database.goOnline();
       }
     });
+    
+    // Verificação periódica de conexão a cada 30 segundos para manter usuários sincronizados
+    const connectionCheckInterval = setInterval(() => {
+      if (navigator.onLine) {
+        // Garantir que está online no Firebase também
+        if (database && typeof database.goOnline === 'function') {
+          database.goOnline();
+        }
+      }
+    }, 30000);
+    
+    // Limpar interval ao desmontar
+    window.addEventListener('beforeunload', () => {
+      clearInterval(connectionCheckInterval);
+    });
+    
   } catch (err) {
     console.warn("Erro ao configurar suporte multi-usuário:", err);
   }
