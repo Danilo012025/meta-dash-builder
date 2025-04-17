@@ -1,4 +1,3 @@
-
 import React, { useState } from "react";
 import { 
   Table, 
@@ -9,9 +8,10 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Phone, Instagram, MapPin, Check, X, PhoneCall, Clock } from "lucide-react";
+import { Phone, Instagram, MapPin, Check, X, PhoneCall, Clock, Plus, Trash2 } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 
 interface Contact {
   id: string;
@@ -19,12 +19,11 @@ interface Contact {
   phone: string;
   instagram: string;
   address: string;
-  status: "não contatado" | "atendeu" | "não atendeu" | "ligar novamente" | "outro horário";
+  status: "não contatado" | "atendeu" | "não atendeu" | "ligar novamente" | "outro horário" | "lead ruim";
   notes?: string;
   lastContactDate?: string;
 }
 
-// Dados iniciais para demonstração
 const initialContacts: Contact[] = [
   {
     id: "1",
@@ -76,6 +75,7 @@ const initialContacts: Contact[] = [
 
 export function ContactsList() {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+  const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
   
   const handleStatusChange = (id: string, newStatus: Contact["status"]) => {
     setContacts(prevContacts => prevContacts.map(contact => {
@@ -89,10 +89,9 @@ export function ContactsList() {
       return contact;
     }));
     
-    // Notificar o usuário da alteração de status
     toast.success(`Status atualizado para: ${newStatus}`);
   };
-  
+
   const getStatusColor = (status: Contact["status"]) => {
     switch (status) {
       case "atendeu":
@@ -103,18 +102,40 @@ export function ContactsList() {
         return "text-blue-500";
       case "outro horário":
         return "text-yellow-500";
+      case "lead ruim":
+        return "text-red-500";
       default:
         return "text-gray-500";
     }
   };
 
+  const handleAddContact = () => {
+    const newContact: Contact = {
+      id: String(contacts.length + 1),
+      name: "Novo Contato",
+      phone: "",
+      instagram: "",
+      address: "",
+      status: "não contatado"
+    };
+    
+    setContacts([...contacts, newContact]);
+    toast.success("Novo contato adicionado");
+  };
+
   return (
     <Card className="border-border bg-background shadow-sm">
-      <CardHeader className="bg-secondary p-4 rounded-t-lg">
+      <CardHeader className="bg-secondary p-4 rounded-t-lg flex justify-between items-center">
         <CardTitle className="text-xl font-title text-white flex items-center gap-2">
           <Phone className="h-5 w-5 text-brand-neon" />
           Lista de Contatos
         </CardTitle>
+        <Button 
+          onClick={() => setIsAddContactDialogOpen(true)}
+          className="bg-brand-neon text-brand-black hover:bg-opacity-80"
+        >
+          <Plus className="mr-2 h-4 w-4" /> Adicionar Contato
+        </Button>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto rounded-b-lg">
@@ -196,6 +217,15 @@ export function ContactsList() {
                       >
                         <Clock className="h-4 w-4" />
                       </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => handleStatusChange(contact.id, "lead ruim")}
+                        title="Lead Ruim"
+                        className="text-red-500 hover:text-red-700 hover:bg-red-500/10"
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </Button>
                     </div>
                   </TableCell>
                 </TableRow>
@@ -204,6 +234,19 @@ export function ContactsList() {
           </Table>
         </div>
       </CardContent>
+      
+      <Dialog open={isAddContactDialogOpen} onOpenChange={setIsAddContactDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Adicionar Novo Contato</DialogTitle>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <Button onClick={handleAddContact} className="w-full">
+              Confirmar Adição de Contato
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </Card>
   );
 }
