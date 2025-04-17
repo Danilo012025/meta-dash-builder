@@ -9,7 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, RefreshCw } from "lucide-react";
 import { toast } from "@/components/ui/sonner";
 import { database } from "@/lib/firebase";
-import { ref, set } from "firebase/database";
+import { ref, set, onValue } from "firebase/database";
 
 export default function Login() {
   const { currentUser, login, signup } = useAuth();
@@ -25,17 +25,37 @@ export default function Login() {
     const checkSystemStatus = async () => {
       try {
         // Testar conexão com Firebase
-        const testRef = ref(database, '.info/connected');
-        const connectedRef = ref(database, 'systemStatus');
+        const connectedRef = ref(database, '.info/connected');
         
-        // Tentar escrever dados de teste
-        await set(connectedRef, {
-          lastCheck: new Date().toISOString(),
-          status: "online"
+        // Criar um listener para verificar a conexão
+        const unsubscribe = onValue(connectedRef, (snap) => {
+          if (snap.exists() && snap.val() === true) {
+            setSystemStatus("online");
+            
+            // Registrar status do sistema
+            try {
+              const statusRef = ref(database, 'systemStatus');
+              set(statusRef, {
+                lastCheck: new Date().toISOString(),
+                status: "online"
+              });
+            } catch (statusError) {
+              console.error("Erro ao registrar status:", statusError);
+            }
+          } else {
+            setSystemStatus("offline");
+          }
+        }, (error) => {
+          console.error("Erro ao verificar status da conexão:", error);
+          setSystemStatus("offline");
         });
-        setSystemStatus("online");
+        
+        return () => {
+          // Limpar listener quando o componente for desmontado
+          if (unsubscribe) unsubscribe();
+        };
       } catch (error) {
-        console.error("Erro ao verificar status do sistema:", error);
+        console.error("Erro ao configurar verificação de status:", error);
         setSystemStatus("offline");
       }
     };
@@ -43,12 +63,15 @@ export default function Login() {
     checkSystemStatus();
     
     // Verificar status de conexão periodicamente
-    window.addEventListener('online', () => setSystemStatus("online"));
-    window.addEventListener('offline', () => setSystemStatus("offline"));
+    const handleOnline = () => setSystemStatus("online");
+    const handleOffline = () => setSystemStatus("offline");
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
     
     return () => {
-      window.removeEventListener('online', () => setSystemStatus("online"));
-      window.removeEventListener('offline', () => setSystemStatus("offline"));
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
     };
   }, []);
   
@@ -71,9 +94,13 @@ export default function Login() {
     
     setIsLoading(true);
     try {
-      await login(email, password);
-      toast.success("Login realizado com sucesso");
-      navigate("/");
+      if (login) {
+        await login(email, password);
+        toast.success("Login realizado com sucesso");
+        navigate("/");
+      } else {
+        throw new Error("Função de login não disponível");
+      }
     } catch (error: any) {
       console.error("Erro de login:", error);
       let message = "Erro ao fazer login. Tente novamente.";
@@ -108,9 +135,13 @@ export default function Login() {
     
     setIsLoading(true);
     try {
-      await signup(email, password);
-      toast.success("Cadastro realizado com sucesso");
-      navigate("/");
+      if (signup) {
+        await signup(email, password);
+        toast.success("Cadastro realizado com sucesso");
+        navigate("/");
+      } else {
+        throw new Error("Função de cadastro não disponível");
+      }
     } catch (error: any) {
       console.error("Erro de cadastro:", error);
       let message = "Erro ao criar conta. Tente novamente.";
