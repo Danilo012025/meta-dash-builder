@@ -1,32 +1,94 @@
 
-import { useState } from "react";
-import { Navigate } from "react-router-dom";
+import { useState, useEffect } from "react";
+import { Navigate, useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Loader2 } from "lucide-react";
+import { Loader2, RefreshCw } from "lucide-react";
+import { toast } from "@/components/ui/sonner";
+import { database } from "@/lib/firebase";
+import { ref, set } from "firebase/database";
 
 export default function Login() {
   const { currentUser, login, signup } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [isRecovering, setIsRecovering] = useState(false);
+  const [systemStatus, setSystemStatus] = useState<"online" | "offline" | "checking">("checking");
+  const navigate = useNavigate();
   
+  // Verificar status do sistema
+  useEffect(() => {
+    const checkSystemStatus = async () => {
+      try {
+        // Testar conexão com Firebase
+        const testRef = ref(database, '.info/connected');
+        const connectedRef = ref(database, 'systemStatus');
+        
+        // Tentar escrever dados de teste
+        await set(connectedRef, {
+          lastCheck: new Date().toISOString(),
+          status: "online"
+        });
+        setSystemStatus("online");
+      } catch (error) {
+        console.error("Erro ao verificar status do sistema:", error);
+        setSystemStatus("offline");
+      }
+    };
+    
+    checkSystemStatus();
+    
+    // Verificar status de conexão periodicamente
+    window.addEventListener('online', () => setSystemStatus("online"));
+    window.addEventListener('offline', () => setSystemStatus("offline"));
+    
+    return () => {
+      window.removeEventListener('online', () => setSystemStatus("online"));
+      window.removeEventListener('offline', () => setSystemStatus("offline"));
+    };
+  }, []);
+  
+  // Se o usuário já estiver autenticado, redirecionar para o dashboard
   if (currentUser) {
     return <Navigate to="/" />;
   }
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email || !password) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    
+    if (systemStatus === "offline") {
+      toast.error("Você está offline. Verifique sua conexão.");
+      return;
+    }
     
     setIsLoading(true);
     try {
       await login(email, password);
-    } catch (error) {
-      // Error is handled in the login function
+      toast.success("Login realizado com sucesso");
+      navigate("/");
+    } catch (error: any) {
+      console.error("Erro de login:", error);
+      let message = "Erro ao fazer login. Tente novamente.";
+      
+      if (error.code === 'auth/user-not-found') {
+        message = "Usuário não encontrado. Verifique seu email.";
+      } else if (error.code === 'auth/wrong-password') {
+        message = "Senha incorreta. Tente novamente.";
+      } else if (error.code === 'auth/too-many-requests') {
+        message = "Muitas tentativas. Tente novamente mais tarde.";
+      } else if (error.code === 'auth/network-request-failed') {
+        message = "Problema de conexão. Verifique sua internet.";
+      }
+      
+      toast.error(message);
     } finally {
       setIsLoading(false);
     }
@@ -34,15 +96,54 @@ export default function Login() {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) return;
+    if (!email || !password) {
+      toast.error("Preencha todos os campos");
+      return;
+    }
+    
+    if (systemStatus === "offline") {
+      toast.error("Você está offline. Verifique sua conexão.");
+      return;
+    }
     
     setIsLoading(true);
     try {
       await signup(email, password);
-    } catch (error) {
-      // Error is handled in the signup function
+      toast.success("Cadastro realizado com sucesso");
+      navigate("/");
+    } catch (error: any) {
+      console.error("Erro de cadastro:", error);
+      let message = "Erro ao criar conta. Tente novamente.";
+      
+      if (error.code === 'auth/email-already-in-use') {
+        message = "Este email já está em uso. Tente fazer login.";
+      } else if (error.code === 'auth/invalid-email') {
+        message = "Email inválido. Verifique o formato.";
+      } else if (error.code === 'auth/weak-password') {
+        message = "Senha fraca. Use pelo menos 6 caracteres.";
+      } else if (error.code === 'auth/operation-not-allowed') {
+        message = "Cadastro não habilitado. Entre em contato com o administrador.";
+      }
+      
+      toast.error(message);
     } finally {
       setIsLoading(false);
+    }
+  };
+
+  const handleRecoverSystem = async () => {
+    setIsRecovering(true);
+    try {
+      // Limpar cache do navegador para o domínio
+      localStorage.removeItem('firebase:previous_websocket_failure');
+      
+      // Forçar recarga da página
+      await new Promise(resolve => setTimeout(resolve, 1000));
+      window.location.reload();
+    } catch (error) {
+      console.error("Erro ao recuperar sistema:", error);
+      setIsRecovering(false);
+      toast.error("Erro ao tentar recuperar o sistema");
     }
   };
 
@@ -54,6 +155,31 @@ export default function Login() {
             <CardTitle className="text-3xl font-title text-brand-neon text-center">
               The Start Agência
             </CardTitle>
+            
+            {systemStatus === "offline" && (
+              <div className="mt-2 bg-red-900/30 border border-red-700 text-red-400 text-center p-2 rounded-md text-sm">
+                Sistema offline. Verifique sua conexão com a internet.
+                <Button 
+                  onClick={handleRecoverSystem} 
+                  variant="outline" 
+                  size="sm"
+                  className="mt-2 w-full"
+                  disabled={isRecovering}
+                >
+                  {isRecovering ? (
+                    <>
+                      <Loader2 className="mr-2 h-3 w-3 animate-spin" />
+                      Recuperando...
+                    </>
+                  ) : (
+                    <>
+                      <RefreshCw className="mr-2 h-3 w-3" />
+                      Tentar recuperar conexão
+                    </>
+                  )}
+                </Button>
+              </div>
+            )}
           </CardHeader>
           <Tabs defaultValue="login" className="w-full">
             <TabsList className="grid grid-cols-2 mb-4">
@@ -97,7 +223,7 @@ export default function Login() {
                   <Button 
                     type="submit" 
                     className="w-full bg-brand-neon text-brand-black hover:bg-opacity-80"
-                    disabled={isLoading}
+                    disabled={isLoading || systemStatus === "offline"}
                   >
                     {isLoading ? (
                       <>
@@ -146,7 +272,7 @@ export default function Login() {
                   <Button 
                     type="submit" 
                     className="w-full bg-brand-neon text-brand-black hover:bg-opacity-80"
-                    disabled={isLoading}
+                    disabled={isLoading || systemStatus === "offline"}
                   >
                     {isLoading ? (
                       <>

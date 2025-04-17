@@ -1,5 +1,5 @@
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { DownloadIcon } from "lucide-react";
 import { HeaderSection } from "./HeaderSection";
@@ -15,16 +15,56 @@ import { exportToExcel } from "@/utils/excelExport";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as SonnerToaster, toast } from "@/components/ui/sonner";
 import { database } from "@/lib/firebase";
-import { ref, onValue, set, get } from "firebase/database";
+import { ref, onValue, set, get, off, update, onDisconnect } from "firebase/database";
 import { useAuth } from "@/contexts/AuthContext";
 
 export function Dashboard() {
   const [data, setData] = useState<DashboardData>(updateAllIndicatorsStatus(initialDashboardData));
   const [isLoading, setIsLoading] = useState(true);
+  const [isConnected, setIsConnected] = useState(true);
   const { currentUser } = useAuth();
   
-  // Inicializar e sincronizar dados com o Firebase
-  useEffect(() => {
+  // Função para gerenciar presença do usuário para suporte a múltiplos usuários
+  const setupUserPresence = useCallback(() => {
+    if (!currentUser) return;
+    
+    try {
+      // Referência para status de conexão
+      const connectedRef = ref(database, '.info/connected');
+      const userStatusRef = ref(database, `userStatus/${currentUser.uid}`);
+      
+      // Monitorar status de conexão
+      onValue(connectedRef, (snap) => {
+        if (snap.val() === true) {
+          setIsConnected(true);
+          
+          // Quando desconectado, atualizar status
+          onDisconnect(userStatusRef).update({
+            status: 'offline',
+            lastSeen: new Date().toISOString()
+          });
+          
+          // Atualizar status como online
+          update(userStatusRef, {
+            status: 'online',
+            email: currentUser.email,
+            lastSeen: new Date().toISOString()
+          });
+        } else {
+          setIsConnected(false);
+        }
+      });
+      
+      return () => {
+        off(connectedRef);
+      };
+    } catch (error) {
+      console.error("Erro ao configurar presença do usuário:", error);
+    }
+  }, [currentUser]);
+
+  // Função para inicializar e sincronizar dados com o Firebase
+  const syncDashboardData = useCallback(() => {
     try {
       // Referência aos dados do dashboard no Firebase
       const dashboardRef = ref(database, 'dashboard');
@@ -47,7 +87,8 @@ export function Dashboard() {
       }).catch(error => {
         console.error("Erro ao buscar dados iniciais:", error);
         setIsLoading(false);
-        toast.error("Erro ao carregar dados");
+        // Usar dados locais em caso de falha
+        toast.error("Erro ao carregar dados do servidor, usando dados locais");
       });
       
       // Configurar listener para atualizações em tempo real
@@ -60,6 +101,9 @@ export function Dashboard() {
         } catch (error) {
           console.error("Erro ao processar dados do Firebase:", error);
         }
+      }, (error) => {
+        console.error("Erro no listener do dashboard:", error);
+        toast.error("Erro de sincronização, algumas alterações podem não ser salvas");
       });
       
       // Limpar listener quando o componente for desmontado
@@ -68,8 +112,39 @@ export function Dashboard() {
       console.error("Erro na referência do dashboard Firebase:", error);
       setIsLoading(false);
       toast.error("Erro de conexão com o banco de dados");
+      
+      // Em caso de erro grave, usar dados locais
+      return () => {};
     }
   }, []);
+  
+  // Setup de presença de usuário e sincronização de dados
+  useEffect(() => {
+    const cleanupPresence = setupUserPresence();
+    const cleanupSync = syncDashboardData();
+    
+    // Monitorar status online/offline da aplicação
+    const handleOnline = () => {
+      setIsConnected(true);
+      toast.success("Conexão restabelecida");
+      syncDashboardData(); // Re-sincronizar dados quando voltar online
+    };
+    
+    const handleOffline = () => {
+      setIsConnected(false);
+      toast.warning("Sem conexão com internet - alterações serão salvas localmente");
+    };
+    
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    
+    return () => {
+      cleanupPresence && cleanupPresence();
+      cleanupSync();
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, [setupUserPresence, syncDashboardData]);
   
   // Monitorar notificações de alterações
   useEffect(() => {
@@ -105,23 +180,30 @@ export function Dashboard() {
     const newData = { ...data, ...updatedData };
     const processedData = updateAllIndicatorsStatus(newData);
     
-    // Atualizar dados localmente
+    // Atualizar dados localmente primeiro (otimista)
     setData(processedData);
     
     try {
-      // Referência aos dados do dashboard no Firebase
+      // Implementar estratégia de atualização otimizada para múltiplos usuários
       const dashboardRef = ref(database, 'dashboard');
       
+      // Atualizar apenas os campos modificados, não o objeto inteiro
+      const updates: Record<string, any> = {};
+      Object.keys(updatedData).forEach(key => {
+        updates[key] = processedData[key as keyof DashboardData];
+      });
+      
       // Atualizar dados no Firebase
-      set(dashboardRef, processedData).then(() => {
-        console.log("Dados salvos com sucesso no Firebase");
+      update(ref(database, 'dashboard'), updates).then(() => {
+        console.log("Dados parciais salvos com sucesso no Firebase");
         
         // Registrar quem fez a atualização
         if (currentUser) {
-          set(ref(database, 'lastUpdate'), {
+          update(ref(database, 'lastUpdate'), {
             userId: currentUser.uid,
             userEmail: currentUser.email,
-            timestamp: new Date().toISOString()
+            timestamp: new Date().toISOString(),
+            fieldsUpdated: Object.keys(updatedData).join(', ')
           }).catch(err => {
             console.error("Erro ao definir informações de atualização:", err);
           });
@@ -139,6 +221,13 @@ export function Dashboard() {
   const handleExportToExcel = () => {
     exportToExcel(data);
   };
+
+  // Mostrar indicador de status de conexão
+  useEffect(() => {
+    if (!isConnected) {
+      toast.warning("Você está offline. As alterações serão sincronizadas quando voltar online.");
+    }
+  }, [isConnected]);
 
   if (isLoading) {
     return (
@@ -158,7 +247,14 @@ export function Dashboard() {
       <SonnerToaster position="top-right" />
       <Toaster />
       
-      <div className="mb-6 flex justify-end">
+      <div className="mb-6 flex justify-between items-center">
+        <div>
+          {!isConnected && (
+            <div className="bg-yellow-500/20 text-yellow-300 px-3 py-1 rounded-md text-sm flex items-center">
+              ⚠️ Modo offline - Alterações serão sincronizadas quando voltar online
+            </div>
+          )}
+        </div>
         <Button 
           onClick={handleExportToExcel} 
           className="bg-brand-neon text-brand-black hover:bg-opacity-80 px-4 py-2 flex items-center gap-2"

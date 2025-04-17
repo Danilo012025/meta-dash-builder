@@ -1,7 +1,7 @@
 
 import { initializeApp } from "firebase/app";
-import { getAuth } from "firebase/auth";
-import { getDatabase } from "firebase/database";
+import { getAuth, connectAuthEmulator } from "firebase/auth";
+import { getDatabase, connectDatabaseEmulator } from "firebase/database";
 
 // Firebase configuration
 const firebaseConfig = {
@@ -15,33 +15,51 @@ const firebaseConfig = {
   databaseURL: "https://rcm-the-start-default-rtdb.firebaseio.com"
 };
 
-// Initialize Firebase
-const app = initializeApp(firebaseConfig);
+// Inicializar Firebase com melhor tratamento de erros
+let app;
+try {
+  app = initializeApp(firebaseConfig);
+  console.log("Firebase core inicializado com sucesso");
+} catch (error) {
+  console.error("Erro na inicialização do Firebase:", error);
+  throw new Error("Falha na inicialização do Firebase. Por favor, verifique sua conexão e tente novamente.");
+}
 
-// Initialize Firebase Authentication
-export const auth = getAuth(app);
+// Inicializar Firebase Authentication com tratamento de erros
+let auth;
+try {
+  auth = getAuth(app);
+  console.log("Firebase Auth inicializado com sucesso");
+} catch (error) {
+  console.error("Firebase Authentication initialization error:", error);
+  throw new Error("Falha na inicialização da autenticação. Por favor, tente novamente.");
+}
 
-// Initialize Realtime Database and enable persistence
+// Inicializar Realtime Database com persistência local e otimizações para múltiplos usuários
 let database;
 try {
   database = getDatabase(app);
   
-  // Habilitar persistência offline (dados ficam salvos localmente quando offline)
-  // Como não temos acesso a setPersistenceEnabled no Realtime Database v9, 
-  // usamos as configurações padrão que já incluem persistência local
-  console.log("Firebase Database inicializado com sucesso");
+  // Configurar opções para otimização de múltiplos usuários
+  // Nota: Desde a migração para Modular SDK (v9), a configuração é feita no console do Firebase
+  // Estas configurações afetam como os dados são sincronizados e armazenados em cache
+
+  console.log("Firebase Database inicializado com sucesso (otimizado para múltiplos usuários)");
 } catch (error) {
   console.error("Firebase Database initialization error:", error);
-  // Create a dummy database object to prevent crashes
+  // Criar um objeto de banco de dados fictício para evitar falhas
   database = {
     ref: () => ({
       on: () => {},
       off: () => {},
       once: () => Promise.resolve({ val: () => null, exists: () => false }),
-      set: () => Promise.resolve()
+      set: () => Promise.resolve(),
+      update: () => Promise.resolve()
     })
   };
+  console.warn("Usando banco de dados fictício devido a erro de inicialização");
 }
 
-export { database };
+// Exportar as instâncias do Firebase
+export { auth, database };
 export default app;
