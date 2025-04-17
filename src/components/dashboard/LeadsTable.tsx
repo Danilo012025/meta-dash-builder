@@ -20,7 +20,8 @@ interface LeadsTableProps {
 }
 
 export function LeadsTable({ data, onUpdateData }: LeadsTableProps) {
-  const [leads, setLeads] = useState<Lead[]>(data.qualifiedLeads);
+  // Add a null check to ensure data.qualifiedLeads exists before using it
+  const [leads, setLeads] = useState<Lead[]>(data?.qualifiedLeads || []);
   const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
   const [newLead, setNewLead] = useState<Partial<Lead>>({
     name: "",
