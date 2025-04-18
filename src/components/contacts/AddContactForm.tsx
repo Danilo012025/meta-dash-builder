@@ -10,15 +10,20 @@ import type { Contact } from "@/types/contacts";
 interface AddContactFormProps {
   onSubmit: (contact: Omit<Contact, "id" | "status" | "lastContactDate">) => void;
   onCancel: () => void;
+  initialData?: Partial<Contact>;
+  isEditing?: boolean;
 }
 
-export function AddContactForm({ onSubmit, onCancel }: AddContactFormProps) {
+export function AddContactForm({ onSubmit, onCancel, initialData, isEditing = false }: AddContactFormProps) {
   const [formData, setFormData] = useState({
-    name: "",
-    phone: "",
-    instagram: "",
-    address: "",
-    notes: ""
+    categoryName: initialData?.categoryName || "",
+    title: initialData?.title || "",
+    city: initialData?.city || "",
+    phone: initialData?.phone || "",
+    url: initialData?.url || "",
+    instagram: initialData?.instagram || "",
+    leads: initialData?.leads || "",
+    notes: initialData?.notes || ""
   });
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -30,11 +35,29 @@ export function AddContactForm({ onSubmit, onCancel }: AddContactFormProps) {
     <form onSubmit={handleSubmit} className="space-y-4">
       <div className="grid gap-4 py-4">
         <div className="grid gap-2">
-          <Label htmlFor="name">Nome</Label>
+          <Label htmlFor="categoryName">Categoria</Label>
           <Input
-            id="name"
-            value={formData.name}
-            onChange={(e) => setFormData((prev) => ({ ...prev, name: e.target.value }))}
+            id="categoryName"
+            value={formData.categoryName}
+            onChange={(e) => setFormData((prev) => ({ ...prev, categoryName: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="title">Título</Label>
+          <Input
+            id="title"
+            value={formData.title}
+            onChange={(e) => setFormData((prev) => ({ ...prev, title: e.target.value }))}
+            required
+          />
+        </div>
+        <div className="grid gap-2">
+          <Label htmlFor="city">Cidade</Label>
+          <Input
+            id="city"
+            value={formData.city}
+            onChange={(e) => setFormData((prev) => ({ ...prev, city: e.target.value }))}
             required
           />
         </div>
@@ -48,6 +71,15 @@ export function AddContactForm({ onSubmit, onCancel }: AddContactFormProps) {
           />
         </div>
         <div className="grid gap-2">
+          <Label htmlFor="url">URL</Label>
+          <Input
+            id="url"
+            type="url"
+            value={formData.url}
+            onChange={(e) => setFormData((prev) => ({ ...prev, url: e.target.value }))}
+          />
+        </div>
+        <div className="grid gap-2">
           <Label htmlFor="instagram">Instagram</Label>
           <Input
             id="instagram"
@@ -56,11 +88,11 @@ export function AddContactForm({ onSubmit, onCancel }: AddContactFormProps) {
           />
         </div>
         <div className="grid gap-2">
-          <Label htmlFor="address">Endereço</Label>
+          <Label htmlFor="leads">Leads</Label>
           <Input
-            id="address"
-            value={formData.address}
-            onChange={(e) => setFormData((prev) => ({ ...prev, address: e.target.value }))}
+            id="leads"
+            value={formData.leads}
+            onChange={(e) => setFormData((prev) => ({ ...prev, leads: e.target.value }))}
           />
         </div>
         <div className="grid gap-2">
@@ -77,7 +109,7 @@ export function AddContactForm({ onSubmit, onCancel }: AddContactFormProps) {
         <Button variant="outline" onClick={onCancel}>
           Cancelar
         </Button>
-        <Button type="submit">Adicionar Contato</Button>
+        <Button type="submit">{isEditing ? 'Salvar Alterações' : 'Adicionar Contato'}</Button>
       </DialogFooter>
     </form>
   );

@@ -7,11 +7,23 @@ import { ImportContacts } from "./ImportContacts";
 import { ContactsHeader } from "./ContactsHeader";
 import { ContactsTable } from "./ContactsTable";
 import { useContacts } from "@/hooks/useContacts";
+import type { Contact } from "@/types/contacts";
 
 export function ContactsList() {
-  const { contacts, handleStatusChange, handleAddContact, setContacts } = useContacts();
+  const { contacts, handleStatusChange, handleAddContact, handleEditContact, setContacts } = useContacts();
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+  const [editingContact, setEditingContact] = useState<Contact | null>(null);
+
+  const handleEditContactClick = (contact: Contact) => {
+    setEditingContact(contact);
+    setIsAddContactDialogOpen(true);
+  };
+
+  const handleCloseDialog = () => {
+    setIsAddContactDialogOpen(false);
+    setEditingContact(null);
+  };
 
   return (
     <Card className="border-border bg-background shadow-sm">
@@ -23,17 +35,29 @@ export function ContactsList() {
         <ContactsTable 
           contacts={contacts}
           onStatusChange={handleStatusChange}
+          onEditContact={handleEditContactClick}
         />
       </CardContent>
       
-      <Dialog open={isAddContactDialogOpen} onOpenChange={setIsAddContactDialogOpen}>
+      <Dialog open={isAddContactDialogOpen} onOpenChange={handleCloseDialog}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Adicionar Novo Contato</DialogTitle>
+            <DialogTitle>
+              {editingContact ? 'Editar Contato' : 'Adicionar Novo Contato'}
+            </DialogTitle>
           </DialogHeader>
           <AddContactForm 
-            onSubmit={handleAddContact}
-            onCancel={() => setIsAddContactDialogOpen(false)}
+            onSubmit={(contactData) => {
+              if (editingContact) {
+                handleEditContact(editingContact.id, contactData);
+              } else {
+                handleAddContact(contactData);
+              }
+              handleCloseDialog();
+            }}
+            onCancel={handleCloseDialog}
+            initialData={editingContact || undefined}
+            isEditing={!!editingContact}
           />
         </DialogContent>
       </Dialog>

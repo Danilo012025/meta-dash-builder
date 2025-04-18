@@ -14,20 +14,26 @@ interface ImportContactsProps {
 }
 
 interface ColumnMapping {
-  name: string | null;
+  categoryName: string | null;
+  title: string | null;
+  city: string | null;
   phone: string | null;
+  url: string | null;
   instagram: string | null;
-  address: string | null;
+  leads: string | null;
 }
 
 export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProps) {
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
   const [mapping, setMapping] = useState<ColumnMapping>({
-    name: null,
+    categoryName: null,
+    title: null,
+    city: null,
     phone: null,
+    url: null,
     instagram: null,
-    address: null,
+    leads: null
   });
   const [previewData, setPreviewData] = useState<any[]>([]);
 
@@ -41,7 +47,7 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
       if (data && data.length > 0) {
         const headers = Object.keys(data[0]);
         setHeaders(headers);
-        setPreviewData(data.slice(0, 3)); // Preview primeiras 3 linhas
+        setPreviewData(data.slice(0, 3));
         toast.success("Arquivo carregado com sucesso!");
       }
     } catch (error) {
@@ -83,9 +89,11 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
       return;
     }
 
-    // Verifica se todos os campos necessários foram mapeados
-    if (!mapping.name || !mapping.phone || !mapping.instagram || !mapping.address) {
-      toast.error("Por favor, mapeie todos os campos necessários.");
+    const requiredFields: (keyof ColumnMapping)[] = ['categoryName', 'title', 'city', 'phone'];
+    const missingFields = requiredFields.filter(field => !mapping[field]);
+    
+    if (missingFields.length > 0) {
+      toast.error(`Por favor, mapeie os campos obrigatórios: ${missingFields.join(', ')}`);
       return;
     }
 
@@ -93,11 +101,14 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
       const data = await readExcelFile(file);
       const formattedContacts = data.map((row, index) => ({
         id: String(Date.now() + index),
-        name: row[mapping.name!],
+        categoryName: row[mapping.categoryName!],
+        title: row[mapping.title!],
+        city: row[mapping.city!],
         phone: row[mapping.phone!],
-        instagram: row[mapping.instagram!],
-        address: row[mapping.address!],
-        status: "não contatado",
+        url: row[mapping.url!] || '',
+        instagram: row[mapping.instagram!] || '',
+        leads: row[mapping.leads!] || '',
+        status: "não contatado"
       }));
 
       onImport(formattedContacts);
@@ -149,66 +160,34 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
                 
                 <div className="grid gap-4">
                   <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Nome</label>
-                      <Select value={mapping.name || ''} onValueChange={(value) => handleMapping('name', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a coluna" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {headers.map((header) => (
-                            <SelectItem key={header} value={header}>
-                              {header}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Telefone</label>
-                      <Select value={mapping.phone || ''} onValueChange={(value) => handleMapping('phone', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a coluna" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {headers.map((header) => (
-                            <SelectItem key={header} value={header}>
-                              {header}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Instagram</label>
-                      <Select value={mapping.instagram || ''} onValueChange={(value) => handleMapping('instagram', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a coluna" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {headers.map((header) => (
-                            <SelectItem key={header} value={header}>
-                              {header}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div>
-                      <label className="text-sm font-medium mb-1 block">Endereço</label>
-                      <Select value={mapping.address || ''} onValueChange={(value) => handleMapping('address', value)}>
-                        <SelectTrigger>
-                          <SelectValue placeholder="Selecione a coluna" />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {headers.map((header) => (
-                            <SelectItem key={header} value={header}>
-                              {header}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    {Object.keys(mapping).map((field) => (
+                      <div key={field}>
+                        <label className="text-sm font-medium mb-1 block">
+                          {field === 'categoryName' ? 'Categoria' :
+                           field === 'title' ? 'Título' :
+                           field === 'city' ? 'Cidade' :
+                           field === 'phone' ? 'Telefone' :
+                           field === 'url' ? 'URL' :
+                           field === 'instagram' ? 'Instagram' :
+                           'Leads'}
+                        </label>
+                        <Select 
+                          value={mapping[field as keyof ColumnMapping] || ''} 
+                          onValueChange={(value) => handleMapping(field as keyof ColumnMapping, value)}
+                        >
+                          <SelectTrigger>
+                            <SelectValue placeholder="Selecione a coluna" />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {headers.map((header) => (
+                              <SelectItem key={header} value={header}>
+                                {header}
+                              </SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    ))}
                   </div>
                 </div>
               </div>
