@@ -8,10 +8,11 @@ import {
   TableRow 
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import { Phone, Instagram, MapPin, Check, X, PhoneCall, Clock, Plus, Trash2 } from "lucide-react";
+import { Phone, Instagram, MapPin, Check, X, PhoneCall, Clock, Plus, Trash2, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { toast } from "@/components/ui/sonner";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { ImportContacts } from "./ImportContacts";
 
 interface Contact {
   id: string;
@@ -76,6 +77,7 @@ const initialContacts: Contact[] = [
 export function ContactsList() {
   const [contacts, setContacts] = useState<Contact[]>(initialContacts);
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
+  const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   
   const handleStatusChange = (id: string, newStatus: Contact["status"]) => {
     setContacts(prevContacts => prevContacts.map(contact => {
@@ -123,6 +125,11 @@ export function ContactsList() {
     toast.success("Novo contato adicionado");
   };
 
+  const handleImportContacts = (newContacts: Contact[]) => {
+    setContacts(prevContacts => [...prevContacts, ...newContacts]);
+    toast.success(`${newContacts.length} contatos importados com sucesso!`);
+  };
+
   return (
     <Card className="border-border bg-background shadow-sm">
       <CardHeader className="bg-secondary p-4 rounded-t-lg flex justify-between items-center">
@@ -130,12 +137,23 @@ export function ContactsList() {
           <Phone className="h-5 w-5 text-brand-neon" />
           Lista de Contatos
         </CardTitle>
-        <Button 
-          onClick={() => setIsAddContactDialogOpen(true)}
-          className="bg-brand-neon text-brand-black hover:bg-opacity-80"
-        >
-          <Plus className="mr-2 h-4 w-4" /> Adicionar Contato
-        </Button>
+        <div className="flex gap-2">
+          <Button 
+            onClick={() => setIsImportDialogOpen(true)}
+            variant="outline"
+            className="bg-secondary-foreground/10 text-white hover:bg-secondary-foreground/20"
+          >
+            <FileSpreadsheet className="mr-2 h-4 w-4" />
+            Importar Contatos
+          </Button>
+          <Button 
+            onClick={() => setIsAddContactDialogOpen(true)}
+            className="bg-brand-neon text-brand-black hover:bg-opacity-80"
+          >
+            <Plus className="mr-2 h-4 w-4" />
+            Adicionar Contato
+          </Button>
+        </div>
       </CardHeader>
       <CardContent className="p-0">
         <div className="overflow-x-auto rounded-b-lg">
@@ -235,6 +253,12 @@ export function ContactsList() {
         </div>
       </CardContent>
       
+      <ImportContacts
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImport={handleImportContacts}
+      />
+
       <Dialog open={isAddContactDialogOpen} onOpenChange={setIsAddContactDialogOpen}>
         <DialogContent>
           <DialogHeader>
