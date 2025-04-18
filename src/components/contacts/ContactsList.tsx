@@ -1,29 +1,14 @@
-import React, { useState } from "react";
-import { 
-  Table, 
-  TableBody, 
-  TableCell, 
-  TableHead, 
-  TableHeader, 
-  TableRow 
-} from "@/components/ui/table";
+import { useState } from "react";
+import { Phone, Instagram, MapPin, Plus, FileSpreadsheet } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Phone, Instagram, MapPin, Check, X, PhoneCall, Clock, Plus, Trash2, FileSpreadsheet } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { toast } from "@/components/ui/sonner";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { ImportContacts } from "./ImportContacts";
-
-interface Contact {
-  id: string;
-  name: string;
-  phone: string;
-  instagram: string;
-  address: string;
-  status: "não contatado" | "atendeu" | "não atendeu" | "ligar novamente" | "outro horário" | "lead ruim";
-  notes?: string;
-  lastContactDate?: string;
-}
+import { AddContactForm } from "./AddContactForm";
+import { ContactStatusButtons } from "./ContactStatusButtons";
+import type { Contact } from "@/types/contacts";
 
 const initialContacts: Contact[] = [
   {
@@ -94,6 +79,18 @@ export function ContactsList() {
     toast.success(`Status atualizado para: ${newStatus}`);
   };
 
+  const handleAddContact = (newContactData: Omit<Contact, "id" | "status" | "lastContactDate">) => {
+    const newContact: Contact = {
+      ...newContactData,
+      id: String(contacts.length + 1),
+      status: "não contatado"
+    };
+    
+    setContacts([...contacts, newContact]);
+    setIsAddContactDialogOpen(false);
+    toast.success("Novo contato adicionado");
+  };
+
   const getStatusColor = (status: Contact["status"]) => {
     switch (status) {
       case "atendeu":
@@ -109,25 +106,6 @@ export function ContactsList() {
       default:
         return "text-gray-500";
     }
-  };
-
-  const handleAddContact = () => {
-    const newContact: Contact = {
-      id: String(contacts.length + 1),
-      name: "Novo Contato",
-      phone: "",
-      instagram: "",
-      address: "",
-      status: "não contatado"
-    };
-    
-    setContacts([...contacts, newContact]);
-    toast.success("Novo contato adicionado");
-  };
-
-  const handleImportContacts = (newContacts: Contact[]) => {
-    setContacts(prevContacts => [...prevContacts, ...newContacts]);
-    toast.success(`${newContacts.length} contatos importados com sucesso!`);
   };
 
   return (
@@ -198,53 +176,10 @@ export function ContactsList() {
                   <TableCell className="text-white">{contact.lastContactDate || "—"}</TableCell>
                   <TableCell className="text-white">{contact.notes || "—"}</TableCell>
                   <TableCell>
-                    <div className="flex items-center justify-center gap-1">
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStatusChange(contact.id, "atendeu")}
-                        title="Atendeu"
-                        className="text-green-500 hover:text-green-700 hover:bg-green-500/10"
-                      >
-                        <Check className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStatusChange(contact.id, "não atendeu")}
-                        title="Não Atendeu"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-500/10"
-                      >
-                        <X className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStatusChange(contact.id, "ligar novamente")}
-                        title="Ligar Novamente"
-                        className="text-blue-500 hover:text-blue-700 hover:bg-blue-500/10"
-                      >
-                        <PhoneCall className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStatusChange(contact.id, "outro horário")}
-                        title="Outro Horário"
-                        className="text-yellow-500 hover:text-yellow-700 hover:bg-yellow-500/10"
-                      >
-                        <Clock className="h-4 w-4" />
-                      </Button>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        onClick={() => handleStatusChange(contact.id, "lead ruim")}
-                        title="Lead Ruim"
-                        className="text-red-500 hover:text-red-700 hover:bg-red-500/10"
-                      >
-                        <Trash2 className="h-4 w-4" />
-                      </Button>
-                    </div>
+                    <ContactStatusButtons 
+                      contactId={contact.id}
+                      onStatusChange={handleStatusChange}
+                    />
                   </TableCell>
                 </TableRow>
               ))}
@@ -253,24 +188,26 @@ export function ContactsList() {
         </div>
       </CardContent>
       
-      <ImportContacts
-        isOpen={isImportDialogOpen}
-        onClose={() => setIsImportDialogOpen(false)}
-        onImport={handleImportContacts}
-      />
-
       <Dialog open={isAddContactDialogOpen} onOpenChange={setIsAddContactDialogOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Adicionar Novo Contato</DialogTitle>
           </DialogHeader>
-          <div className="grid gap-4 py-4">
-            <Button onClick={handleAddContact} className="w-full">
-              Confirmar Adição de Contato
-            </Button>
-          </div>
+          <AddContactForm 
+            onSubmit={handleAddContact}
+            onCancel={() => setIsAddContactDialogOpen(false)}
+          />
         </DialogContent>
       </Dialog>
+
+      <ImportContacts
+        isOpen={isImportDialogOpen}
+        onClose={() => setIsImportDialogOpen(false)}
+        onImport={(newContacts) => {
+          setContacts(prevContacts => [...prevContacts, ...newContacts]);
+          toast.success(`${newContacts.length} contatos importados com sucesso!`);
+        }}
+      />
     </Card>
   );
 }
