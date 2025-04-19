@@ -1,5 +1,5 @@
 
-import { ArrowDown, FileSpreadsheet } from "lucide-react";
+import { ArrowDown, FileSpreadsheet, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
@@ -16,7 +16,8 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
     previewData,
     handleFileUpload,
     handleMapping,
-    readExcelFile
+    readExcelFile,
+    resetImport
   } = useExcelImport();
 
   const handleImport = async () => {
@@ -49,6 +50,7 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
 
       onImport(formattedContacts);
       toast.success("Contatos importados com sucesso!");
+      resetImport();
       onClose();
     } catch (error) {
       console.error("Erro ao importar contatos:", error);
@@ -56,8 +58,17 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
     }
   };
 
+  const handleBack = () => {
+    resetImport();
+  };
+
   return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
+    <Dialog open={isOpen} onOpenChange={(open) => {
+      if (!open) {
+        resetImport();
+        onClose();
+      }
+    }}>
       <DialogContent className="sm:max-w-[600px]">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2">
@@ -71,6 +82,17 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
 
           {file && headers.length > 0 && (
             <>
+              <div className="flex items-center">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  className="flex items-center gap-1" 
+                  onClick={handleBack}
+                >
+                  <ArrowLeft className="h-4 w-4" /> Voltar
+                </Button>
+              </div>
+              
               <ColumnMappingSection
                 fileName={file.name}
                 headers={headers}

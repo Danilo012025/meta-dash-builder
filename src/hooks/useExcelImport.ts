@@ -18,6 +18,21 @@ export const useExcelImport = () => {
   });
   const [previewData, setPreviewData] = useState<any[]>([]);
 
+  const resetImport = () => {
+    setFile(null);
+    setHeaders([]);
+    setMapping({
+      categoryName: null,
+      title: null,
+      city: null,
+      phone: null,
+      url: null,
+      instagram: null,
+      leads: null
+    });
+    setPreviewData([]);
+  };
+
   const readExcelFile = (file: File): Promise<any[]> => {
     return new Promise((resolve, reject) => {
       const reader = new FileReader();
@@ -68,6 +83,7 @@ export const useExcelImport = () => {
     previewData,
     handleFileUpload,
     handleMapping,
-    readExcelFile
+    readExcelFile,
+    resetImport
   };
 };
