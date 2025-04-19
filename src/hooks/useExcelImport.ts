@@ -98,7 +98,7 @@ export const useExcelImport = () => {
   const handleMapping = (field: keyof ColumnMapping, value: string) => {
     setMapping(prev => ({
       ...prev,
-      [field]: value === "" ? null : value
+      [field]: value === '' ? null : value
     }));
   };
 

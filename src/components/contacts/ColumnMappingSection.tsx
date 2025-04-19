@@ -52,14 +52,14 @@ export function ColumnMappingSection({
                 }
               </label>
               <Select 
-                value={mapping[field as keyof ColumnMapping] || ''} 
-                onValueChange={(value) => onMapping(field as keyof ColumnMapping, value)}
+                value={mapping[field as keyof ColumnMapping] || 'none'} 
+                onValueChange={(value) => onMapping(field as keyof ColumnMapping, value === 'none' ? '' : value)}
               >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione a coluna" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="">Nenhum</SelectItem>
+                  <SelectItem value="none">Nenhum</SelectItem>
                   {headers.map((header) => (
                     <SelectItem key={header} value={header}>
                       {header}

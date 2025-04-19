@@ -45,7 +45,12 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
       const uniqueContacts = [];
       
       for (const row of data) {
-        const key = `${row[mapping.title!]}-${row[mapping.phone!]}`;
+        // Skip rows that don't have the required fields
+        if (!mapping.title || !row[mapping.title] || !mapping.phone || !row[mapping.phone]) {
+          continue;
+        }
+        
+        const key = `${row[mapping.title]}-${row[mapping.phone]}`;
         if (!uniqueMap.has(key)) {
           uniqueMap.set(key, true);
           uniqueContacts.push(row);
