@@ -7,6 +7,7 @@ import { ImportContacts } from "./ImportContacts";
 import { ContactsHeader } from "./ContactsHeader";
 import { ContactsTable } from "./ContactsTable";
 import { useContacts } from "@/hooks/useContacts";
+import { toast } from "@/components/ui/sonner"; // Add this import
 import type { Contact } from "@/types/contacts";
 
 interface ContactsListProps {
