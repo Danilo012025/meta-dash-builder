@@ -2,6 +2,7 @@
 import { ArrowDown, FileSpreadsheet, ArrowLeft } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { toast } from "@/components/ui/sonner";
 import { useExcelImport } from "@/hooks/useExcelImport";
 import { FileUploadSection } from "./FileUploadSection";
@@ -17,7 +18,9 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
     handleFileUpload,
     handleMapping,
     readExcelFile,
-    resetImport
+    resetImport,
+    selectedCategory,
+    setSelectedCategory
   } = useExcelImport();
 
   const handleImport = async () => {
@@ -55,7 +58,7 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
       
       const formattedContacts = uniqueContacts.map((row, index) => ({
         id: String(Date.now() + index),
-        categoryName: row[mapping.categoryName!],
+        categoryName: selectedCategory === 'clinicas' ? 'Clínica' : 'Ótica',
         title: row[mapping.title!],
         city: row[mapping.city!],
         phone: row[mapping.phone!],
@@ -93,41 +96,82 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
             Importar Contatos via Planilha
           </DialogTitle>
           <DialogDescription>
-            Os campos marcados com * são obrigatórios.
+            Selecione a categoria e faça o upload da planilha correspondente.
           </DialogDescription>
         </DialogHeader>
 
-        <div className="grid gap-6 py-4">
-          {!file && <FileUploadSection onFileUpload={handleFileUpload} />}
+        <Tabs defaultValue="clinicas" onValueChange={setSelectedCategory} className="w-full">
+          <TabsList className="grid w-full grid-cols-2 mb-4">
+            <TabsTrigger value="clinicas">Clínicas</TabsTrigger>
+            <TabsTrigger value="oticas">Óticas</TabsTrigger>
+          </TabsList>
 
-          {file && headers.length > 0 && (
-            <>
-              <div className="flex items-center">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
-                  className="flex items-center gap-1" 
-                  onClick={handleBack}
-                >
-                  <ArrowLeft className="h-4 w-4" /> Voltar
-                </Button>
-              </div>
-              
-              <ColumnMappingSection
-                fileName={file.name}
-                headers={headers}
-                mapping={mapping}
-                onMapping={handleMapping}
-                previewData={previewData}
-              />
+          <TabsContent value="clinicas">
+            <div className="grid gap-6 py-4">
+              {!file && <FileUploadSection onFileUpload={handleFileUpload} />}
+              {file && headers.length > 0 && (
+                <>
+                  <div className="flex items-center">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-1" 
+                      onClick={handleBack}
+                    >
+                      <ArrowLeft className="h-4 w-4" /> Voltar
+                    </Button>
+                  </div>
+                  
+                  <ColumnMappingSection
+                    fileName={file.name}
+                    headers={headers}
+                    mapping={mapping}
+                    onMapping={handleMapping}
+                    previewData={previewData}
+                  />
 
-              <Button onClick={handleImport} className="w-full mt-4">
-                <ArrowDown className="mr-2 h-4 w-4" />
-                Importar Contatos
-              </Button>
-            </>
-          )}
-        </div>
+                  <Button onClick={handleImport} className="w-full mt-4">
+                    <ArrowDown className="mr-2 h-4 w-4" />
+                    Importar Contatos
+                  </Button>
+                </>
+              )}
+            </div>
+          </TabsContent>
+
+          <TabsContent value="oticas">
+            <div className="grid gap-6 py-4">
+              {!file && <FileUploadSection onFileUpload={handleFileUpload} />}
+              {file && headers.length > 0 && (
+                <>
+                  <div className="flex items-center">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      className="flex items-center gap-1" 
+                      onClick={handleBack}
+                    >
+                      <ArrowLeft className="h-4 w-4" /> Voltar
+                    </Button>
+                  </div>
+                  
+                  <ColumnMappingSection
+                    fileName={file.name}
+                    headers={headers}
+                    mapping={mapping}
+                    onMapping={handleMapping}
+                    previewData={previewData}
+                  />
+
+                  <Button onClick={handleImport} className="w-full mt-4">
+                    <ArrowDown className="mr-2 h-4 w-4" />
+                    Importar Contatos
+                  </Button>
+                </>
+              )}
+            </div>
+          </TabsContent>
+        </Tabs>
       </DialogContent>
     </Dialog>
   );

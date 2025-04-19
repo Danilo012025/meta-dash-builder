@@ -7,6 +7,7 @@ import type { ColumnMapping } from "@/types/import";
 export const useExcelImport = () => {
   const [file, setFile] = useState<File | null>(null);
   const [headers, setHeaders] = useState<string[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('clinicas');
   const [mapping, setMapping] = useState<ColumnMapping>({
     categoryName: null,
     title: null,
@@ -106,6 +107,8 @@ export const useExcelImport = () => {
     headers,
     mapping,
     previewData,
+    selectedCategory,
+    setSelectedCategory,
     handleFileUpload,
     handleMapping,
     readExcelFile,
