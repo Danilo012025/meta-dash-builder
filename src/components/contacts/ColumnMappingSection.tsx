@@ -31,6 +31,9 @@ export function ColumnMappingSection({
     }
   };
 
+  // Define required fields
+  const requiredFields: (keyof ColumnMapping)[] = ['categoryName', 'title', 'city', 'phone'];
+
   return (
     <div className="grid gap-4">
       <div className="flex items-center gap-2">
@@ -41,9 +44,12 @@ export function ColumnMappingSection({
       <div className="grid gap-4">
         <div className="grid grid-cols-2 gap-4">
           {Object.keys(mapping).map((field) => (
-            <div key={field}>
+            <div key={field} className="mb-2">
               <label className="text-sm font-medium mb-1 block">
                 {getFieldLabel(field)}
+                {requiredFields.includes(field as keyof ColumnMapping) && 
+                  <span className="text-destructive ml-1">*</span>
+                }
               </label>
               <Select 
                 value={mapping[field as keyof ColumnMapping] || ''} 
@@ -53,6 +59,7 @@ export function ColumnMappingSection({
                   <SelectValue placeholder="Selecione a coluna" />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="">Nenhum</SelectItem>
                   {headers.map((header) => (
                     <SelectItem key={header} value={header}>
                       {header}
@@ -68,11 +75,11 @@ export function ColumnMappingSection({
       {previewData.length > 0 && (
         <div className="mt-4">
           <h4 className="text-sm font-medium mb-2">Preview dos dados:</h4>
-          <div className="text-sm text-muted-foreground">
+          <div className="text-sm text-muted-foreground max-h-48 overflow-y-auto">
             {previewData.slice(0, 2).map((row, index) => (
-              <div key={index} className="grid grid-cols-2 gap-2 mb-2">
+              <div key={index} className="grid grid-cols-2 gap-2 mb-4 p-2 border rounded">
                 {Object.entries(row).map(([key, value]) => (
-                  <div key={key}>
+                  <div key={key} className="overflow-hidden text-ellipsis">
                     <span className="font-medium">{key}:</span> {String(value)}
                   </div>
                 ))}

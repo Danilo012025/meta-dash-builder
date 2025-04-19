@@ -1,6 +1,6 @@
 
 import { ArrowDown, FileSpreadsheet, ArrowLeft } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/components/ui/sonner";
 import { useExcelImport } from "@/hooks/useExcelImport";
@@ -59,9 +59,9 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
         title: row[mapping.title!],
         city: row[mapping.city!],
         phone: row[mapping.phone!],
-        url: mapping.url ? row[mapping.url] || '' : '',
-        instagram: mapping.instagram ? row[mapping.instagram] || '' : '',
-        leads: mapping.leads ? row[mapping.leads] || '' : '',
+        url: mapping.url && row[mapping.url] ? row[mapping.url] : '',
+        instagram: mapping.instagram && row[mapping.instagram] ? row[mapping.instagram] : '',
+        leads: mapping.leads && row[mapping.leads] ? row[mapping.leads] : '',
         status: "não contatado"
       }));
 
@@ -92,6 +92,9 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
             <FileSpreadsheet className="h-5 w-5" />
             Importar Contatos via Planilha
           </DialogTitle>
+          <DialogDescription>
+            Os campos marcados com * são obrigatórios.
+          </DialogDescription>
         </DialogHeader>
 
         <div className="grid gap-6 py-4">

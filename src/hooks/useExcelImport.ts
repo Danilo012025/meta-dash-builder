@@ -61,6 +61,31 @@ export const useExcelImport = () => {
         const headers = Object.keys(data[0]);
         setHeaders(headers);
         setPreviewData(data.slice(0, 3));
+        
+        // Auto-map columns if their names match fields
+        const initialMapping: ColumnMapping = {
+          categoryName: null,
+          title: null,
+          city: null,
+          phone: null,
+          url: null,
+          instagram: null,
+          leads: null
+        };
+        
+        // Try to find matching column names (case insensitive)
+        headers.forEach(header => {
+          const headerLower = header.toLowerCase();
+          if (headerLower.includes('categ')) initialMapping.categoryName = header;
+          else if (headerLower.includes('titul') || headerLower.includes('titl') || headerLower.includes('nome')) initialMapping.title = header;
+          else if (headerLower.includes('cidad')) initialMapping.city = header;
+          else if (headerLower.includes('tele') || headerLower.includes('fone')) initialMapping.phone = header;
+          else if (headerLower.includes('url') || headerLower.includes('site')) initialMapping.url = header;
+          else if (headerLower.includes('insta')) initialMapping.instagram = header;
+          else if (headerLower.includes('lead')) initialMapping.leads = header;
+        });
+        
+        setMapping(initialMapping);
         toast.success("Arquivo carregado com sucesso!");
       }
     } catch (error) {
@@ -72,7 +97,7 @@ export const useExcelImport = () => {
   const handleMapping = (field: keyof ColumnMapping, value: string) => {
     setMapping(prev => ({
       ...prev,
-      [field]: value
+      [field]: value === "" ? null : value
     }));
   };
 
