@@ -24,6 +24,16 @@ export const useContacts = () => {
   };
 
   const handleAddContact = (newContactData: Omit<Contact, "id" | "status" | "lastContactDate">) => {
+    // Check if contact with same title and phone already exists
+    const isDuplicate = contacts.some(
+      contact => contact.title === newContactData.title && contact.phone === newContactData.phone
+    );
+    
+    if (isDuplicate) {
+      toast.error("Um contato com este título e telefone já existe.");
+      return;
+    }
+    
     const newContact: Contact = {
       ...newContactData,
       id: String(Date.now()),
@@ -35,6 +45,18 @@ export const useContacts = () => {
   };
 
   const handleEditContact = (id: string, updatedData: Omit<Contact, "id" | "status" | "lastContactDate">) => {
+    // Check if another contact (not this one) has the same title and phone
+    const isDuplicate = contacts.some(
+      contact => contact.id !== id && 
+                contact.title === updatedData.title && 
+                contact.phone === updatedData.phone
+    );
+    
+    if (isDuplicate) {
+      toast.error("Um contato com este título e telefone já existe.");
+      return;
+    }
+    
     setContacts(prevContacts => prevContacts.map(contact => {
       if (contact.id === id) {
         return {
@@ -48,11 +70,17 @@ export const useContacts = () => {
     toast.success("Contato atualizado com sucesso");
   };
 
+  const handleDeleteContact = (id: string) => {
+    setContacts(prevContacts => prevContacts.filter(contact => contact.id !== id));
+    toast.success("Contato excluído com sucesso");
+  };
+
   return {
     contacts,
     setContacts,
     handleStatusChange,
     handleAddContact,
-    handleEditContact
+    handleEditContact,
+    handleDeleteContact
   };
 };

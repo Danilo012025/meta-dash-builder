@@ -9,11 +9,21 @@ import { ContactsTable } from "./ContactsTable";
 import { useContacts } from "@/hooks/useContacts";
 import type { Contact } from "@/types/contacts";
 
-export function ContactsList() {
-  const { contacts, handleStatusChange, handleAddContact, handleEditContact, setContacts } = useContacts();
+interface ContactsListProps {
+  categoryFilter: string | null;
+}
+
+export function ContactsList({ categoryFilter }: ContactsListProps) {
+  const { contacts, handleStatusChange, handleAddContact, handleEditContact, handleDeleteContact, setContacts } = useContacts();
   const [isAddContactDialogOpen, setIsAddContactDialogOpen] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
   const [editingContact, setEditingContact] = useState<Contact | null>(null);
+
+  // Filter contacts based on category if a filter is provided
+  const filteredContacts = categoryFilter 
+    ? contacts.filter(contact => 
+        contact.categoryName.toLowerCase().includes(categoryFilter.toLowerCase()))
+    : contacts;
 
   const handleEditContactClick = (contact: Contact) => {
     setEditingContact(contact);
@@ -33,9 +43,10 @@ export function ContactsList() {
       />
       <CardContent className="p-0">
         <ContactsTable 
-          contacts={contacts}
+          contacts={filteredContacts}
           onStatusChange={handleStatusChange}
           onEditContact={handleEditContactClick}
+          onDeleteContact={handleDeleteContact}
         />
       </CardContent>
       
@@ -66,7 +77,21 @@ export function ContactsList() {
         isOpen={isImportDialogOpen}
         onClose={() => setIsImportDialogOpen(false)}
         onImport={(newContacts) => {
-          setContacts(prevContacts => [...prevContacts, ...newContacts]);
+          // Check for duplicates before adding
+          const existingMap = new Map(contacts.map(contact => [
+            `${contact.title}-${contact.phone}`, contact
+          ]));
+          
+          const uniqueContacts = newContacts.filter(newContact => {
+            const key = `${newContact.title}-${newContact.phone}`;
+            return !existingMap.has(key);
+          });
+          
+          if (uniqueContacts.length < newContacts.length) {
+            toast.info(`${newContacts.length - uniqueContacts.length} contatos duplicados foram ignorados.`);
+          }
+          
+          setContacts(prevContacts => [...prevContacts, ...uniqueContacts]);
         }}
       />
     </Card>

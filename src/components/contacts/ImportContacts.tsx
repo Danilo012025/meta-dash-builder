@@ -36,15 +36,32 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
 
     try {
       const data = await readExcelFile(file);
-      const formattedContacts = data.map((row, index) => ({
+      
+      // Remove duplicates based on title and phone
+      const uniqueMap = new Map();
+      const uniqueContacts = [];
+      
+      for (const row of data) {
+        const key = `${row[mapping.title!]}-${row[mapping.phone!]}`;
+        if (!uniqueMap.has(key)) {
+          uniqueMap.set(key, true);
+          uniqueContacts.push(row);
+        }
+      }
+      
+      if (uniqueContacts.length < data.length) {
+        toast.info(`${data.length - uniqueContacts.length} contatos duplicados foram removidos.`);
+      }
+      
+      const formattedContacts = uniqueContacts.map((row, index) => ({
         id: String(Date.now() + index),
         categoryName: row[mapping.categoryName!],
         title: row[mapping.title!],
         city: row[mapping.city!],
         phone: row[mapping.phone!],
-        url: row[mapping.url!] || '',
-        instagram: row[mapping.instagram!] || '',
-        leads: row[mapping.leads!] || '',
+        url: mapping.url ? row[mapping.url] || '' : '',
+        instagram: mapping.instagram ? row[mapping.instagram] || '' : '',
+        leads: mapping.leads ? row[mapping.leads] || '' : '',
         status: "não contatado"
       }));
 
