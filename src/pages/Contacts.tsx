@@ -21,9 +21,9 @@ const Contacts = () => {
   }, [contacts]);
   
   return (
-    <div className="min-h-screen bg-background text-foreground">
-      <div className="container mx-auto px-4 py-8 max-w-7xl">
-        <div className="flex items-center mb-8 gap-4">
+    <div className="min-h-screen bg-background">
+      <div className="container mx-auto px-4 py-4 max-w-[95%]">
+        <div className="flex items-center mb-4 gap-4">
           <Link to="/">
             <Button variant="outline" size="sm" className="flex items-center gap-1">
               <ArrowLeft className="h-4 w-4" /> Voltar ao Dashboard
@@ -33,7 +33,7 @@ const Contacts = () => {
         </div>
 
         <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
-          <TabsList className="grid w-full grid-cols-3 mb-8">
+          <TabsList className="grid w-full grid-cols-3 mb-4">
             <TabsTrigger value="all" className="relative">
               Todos
               <span className="absolute -top-1 -right-1 bg-brand-neon text-brand-black text-xs px-1.5 py-0.5 rounded-full">
