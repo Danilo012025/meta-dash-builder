@@ -5,9 +5,16 @@ import { ContactsList } from "@/components/contacts/ContactsList";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { ArrowLeft } from "lucide-react";
+import { useContacts } from "@/hooks/useContacts";
 
 const Contacts = () => {
   const [activeTab, setActiveTab] = useState<string>("all");
+  const { contacts } = useContacts();
+  
+  // Calculate counts
+  const totalContacts = contacts.length;
+  const clinicContacts = contacts.filter(contact => contact.categoryName === "Clínica").length;
+  const opticsContacts = contacts.filter(contact => contact.categoryName === "Ótica").length;
   
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -23,9 +30,24 @@ const Contacts = () => {
 
         <Tabs defaultValue="all" onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-3 mb-8">
-            <TabsTrigger value="all">Todos</TabsTrigger>
-            <TabsTrigger value="clinicas">Clínicas</TabsTrigger>
-            <TabsTrigger value="oticas">Óticas</TabsTrigger>
+            <TabsTrigger value="all" className="relative">
+              Todos
+              <span className="absolute -top-1 -right-1 bg-brand-neon text-brand-black text-xs px-1.5 py-0.5 rounded-full">
+                {totalContacts}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="clinicas" className="relative">
+              Clínicas
+              <span className="absolute -top-1 -right-1 bg-brand-neon text-brand-black text-xs px-1.5 py-0.5 rounded-full">
+                {clinicContacts}
+              </span>
+            </TabsTrigger>
+            <TabsTrigger value="oticas" className="relative">
+              Óticas
+              <span className="absolute -top-1 -right-1 bg-brand-neon text-brand-black text-xs px-1.5 py-0.5 rounded-full">
+                {opticsContacts}
+              </span>
+            </TabsTrigger>
           </TabsList>
           
           <TabsContent value="all">
@@ -46,3 +68,4 @@ const Contacts = () => {
 };
 
 export default Contacts;
+
