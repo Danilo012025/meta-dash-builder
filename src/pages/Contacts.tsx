@@ -1,6 +1,6 @@
 
 import { Link } from "react-router-dom";
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { ContactsList } from "@/components/contacts/ContactsList";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
@@ -11,10 +11,14 @@ const Contacts = () => {
   const [activeTab, setActiveTab] = useState<string>("all");
   const { contacts } = useContacts();
   
-  // Calculate counts
-  const totalContacts = contacts.length;
-  const clinicContacts = contacts.filter(contact => contact.categoryName === "Clínica").length;
-  const opticsContacts = contacts.filter(contact => contact.categoryName === "Ótica").length;
+  // Calculate counts with useMemo to optimize performance
+  const { totalContacts, clinicContacts, opticsContacts } = useMemo(() => {
+    return {
+      totalContacts: contacts.length,
+      clinicContacts: contacts.filter(contact => contact.categoryName === "Clínica").length,
+      opticsContacts: contacts.filter(contact => contact.categoryName === "Ótica").length
+    };
+  }, [contacts]);
   
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -68,4 +72,3 @@ const Contacts = () => {
 };
 
 export default Contacts;
-

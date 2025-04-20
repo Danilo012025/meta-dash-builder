@@ -1,12 +1,21 @@
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { toast } from "@/components/ui/sonner";
 import type { Contact } from "@/types/contacts";
 
-const initialContacts: Contact[] = [];
+const STORAGE_KEY = "contacts_data";
 
 export const useContacts = () => {
-  const [contacts, setContacts] = useState<Contact[]>(initialContacts);
+  // Initialize state from localStorage or use empty array if nothing exists
+  const [contacts, setContacts] = useState<Contact[]>(() => {
+    const savedContacts = localStorage.getItem(STORAGE_KEY);
+    return savedContacts ? JSON.parse(savedContacts) : [];
+  });
+
+  // Sync to localStorage whenever contacts change
+  useEffect(() => {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(contacts));
+  }, [contacts]);
 
   const handleStatusChange = (id: string, newStatus: Contact["status"]) => {
     setContacts(prevContacts => prevContacts.map(contact => {
