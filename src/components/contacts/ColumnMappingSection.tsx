@@ -53,9 +53,9 @@ export function ColumnMappingSection({
               </label>
               <Select 
                 value={mapping[field as keyof ColumnMapping] || 'none'} 
-                onValueChange={(value) => onMapping(field as keyof ColumnMapping, value === 'none' ? '' : value)}
+                onValueChange={(value) => onMapping(field as keyof ColumnMapping, value)}
               >
-                <SelectTrigger>
+                <SelectTrigger className="w-full">
                   <SelectValue placeholder="Selecione a coluna" />
                 </SelectTrigger>
                 <SelectContent>

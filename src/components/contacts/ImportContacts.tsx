@@ -29,7 +29,7 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
       return;
     }
 
-    const requiredFields: (keyof typeof mapping)[] = ['categoryName', 'title', 'city', 'phone'];
+    const requiredFields: (keyof typeof mapping)[] = ['title', 'city', 'phone'];
     const missingFields = requiredFields.filter(field => !mapping[field]);
     
     if (missingFields.length > 0) {

@@ -81,7 +81,7 @@ export const useExcelImport = () => {
           else if (headerLower.includes('titul') || headerLower.includes('titl') || headerLower.includes('nome')) initialMapping.title = header;
           else if (headerLower.includes('cidad')) initialMapping.city = header;
           else if (headerLower.includes('tele') || headerLower.includes('fone')) initialMapping.phone = header;
-          else if (headerLower.includes('url') || headerLower.includes('site')) initialMapping.url = header;
+          else if (headerLower.includes('url') || headerLower.includes('site') || headerLower.includes('web')) initialMapping.url = header;
           else if (headerLower.includes('insta')) initialMapping.instagram = header;
           else if (headerLower.includes('lead')) initialMapping.leads = header;
         });
@@ -99,10 +99,10 @@ export const useExcelImport = () => {
     }
   };
 
-  const handleMapping = (field: keyof ColumnMapping, value: string) => {
+  const handleMapping = (field: keyof ColumnMapping, value: string | null) => {
     setMapping(prev => ({
       ...prev,
-      [field]: value === '' ? null : value
+      [field]: value === 'none' ? null : value
     }));
     
     // Debug log when mapping is updated
