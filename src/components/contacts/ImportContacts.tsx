@@ -73,6 +73,9 @@ export function ImportContacts({ isOpen, onClose, onImport }: ImportContactsProp
         status: "não contatado"
       }));
 
+      // Debug log to check formatted contacts
+      console.log("Contatos formatados:", formattedContacts);
+
       onImport(formattedContacts);
       toast.success("Contatos importados com sucesso!");
       resetImport();

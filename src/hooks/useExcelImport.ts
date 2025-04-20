@@ -1,3 +1,4 @@
+
 import { useState } from "react";
 import * as XLSX from 'xlsx';
 import { toast } from "@/components/ui/sonner";
@@ -87,6 +88,10 @@ export const useExcelImport = () => {
         
         setMapping(initialMapping);
         toast.success("Arquivo carregado com sucesso!");
+
+        // Debug log to check if instagram and leads are being found
+        console.log("Headers encontrados:", headers);
+        console.log("Mapeamento inicial:", initialMapping);
       }
     } catch (error) {
       console.error("Erro ao ler arquivo:", error);
@@ -99,6 +104,9 @@ export const useExcelImport = () => {
       ...prev,
       [field]: value === '' ? null : value
     }));
+    
+    // Debug log when mapping is updated
+    console.log(`Campo ${field} mapeado para coluna: ${value}`);
   };
 
   return {
